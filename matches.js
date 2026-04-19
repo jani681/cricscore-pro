@@ -1,7 +1,6 @@
-alert("JS connected");
+document.getElementById("loadBtn").addEventListener("click", function () {
 
-document.getElementById("loadBtn").addEventListener("click", () => {
-  const container = document.getElementById("matches");
+  const container = document.getElementById("matchContainer");
 
   const match = {
     team1: "Pakistan",
