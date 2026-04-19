@@ -1,0 +1,6 @@
+{
+  "name": "CricScore Pro",
+  "description": "Mobile-first local cricket match management with live scoring, player stats, and local persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

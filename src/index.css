@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", -apple-system, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg-deep: #08110e;
+  --color-surface: #12221c;
+  --color-accent-green: #27ae60;
+  --color-gold: #d4af37;
+  --color-gold-dark: #b8860b;
+  --color-text-primary: #f8f9fa;
+  --color-text-secondary: #94a3b8;
+  --color-red: #e74c3c;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-deep text-text-primary font-sans antialiased selection:bg-accent-green/30;
+  }
+}
+
+@layer components {
+  .app-frame {
+    @apply max-w-[420px] mx-auto min-h-screen md:min-h-[720px] md:my-8 bg-surface border-x border-white/5 md:border md:border-gold/20 md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col relative;
+  }
+  
+  .scoreboard-radial {
+    @apply bg-[radial-gradient(circle_at_top,_rgba(39,174,96,0.15)_0%,_transparent_70%)] py-8 px-6 text-center;
+  }
+
+  .stat-row {
+    @apply grid grid-cols-[2fr_1fr_1fr_1fr] p-3 bg-white/3 rounded-xl mb-2 text-sm items-center transition-all;
+  }
+  
+  .stat-row-active {
+    @apply bg-gradient-to-r from-accent-green/20 to-transparent border-l-3 border-accent-green;
+  }
+
+  .btn-base {
+    @apply aspect-square rounded-2xl font-bold flex items-center justify-center transition-all active:scale-95;
+  }
+
+  .btn-run {
+    @apply bg-surface border border-white/10 text-white hover:border-accent-green/50;
+  }
+
+  .btn-extra {
+    @apply bg-gold/10 text-gold border border-gold/30;
+  }
+
+  .btn-wicket {
+    @apply bg-red/20 text-red border border-red hover:bg-red/30;
+  }
+
+  .btn-primary {
+    @apply bg-accent-green text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider text-sm;
+  }
+  
+  .input-field {
+    @apply bg-bg-deep border border-white/10 rounded-xl px-4 py-3 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-white;
+  }
+}
