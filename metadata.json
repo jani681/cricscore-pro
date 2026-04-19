@@ -1,6 +1,6 @@
 {
-  "name": "CricScore Pro",
-  "description": "Mobile-first local cricket match management with live scoring, player stats, and local persistence.",
+  "name": "CricScore Live",
+  "description": "Real-time cricket match tracker with live scores from Cricbuzz, professional match feed, and local tournament management.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
