@@ -1,3 +1,5 @@
+alert("JS connected");
+
 document.getElementById("loadBtn").addEventListener("click", () => {
   const container = document.getElementById("matches");
 
