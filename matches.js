@@ -1,23 +1,15 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.getElementById("loadBtn").onclick = function () {
 
-  document.getElementById("loadBtn").addEventListener("click", function () {
+  const match = {
+    team1: "Pakistan",
+    team2: "India",
+    score: "120/3",
+    overs: "15.2"
+  };
 
-    alert("Button working ✅");
-
-    const container = document.getElementById("matchContainer");
-
-    const match = {
-      team1: "Pakistan",
-      team2: "India",
-      score: "120/3",
-      overs: "15.2"
-    };
-
-    container.innerHTML = `
-      <h3>${match.team1} vs ${match.team2}</h3>
-      <p><b>Score:</b> ${match.score}</p>
-      <p><b>Overs:</b> ${match.overs}</p>
-    `;
-  });
-
-});
+  document.getElementById("matchContainer").innerHTML = `
+    <h3>${match.team1} vs ${match.team2}</h3>
+    <p><b>Score:</b> ${match.score}</p>
+    <p><b>Overs:</b> ${match.overs}</p>
+  `;
+};
