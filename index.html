@@ -34,17 +34,30 @@
       white-space: pre-line;
     }
   </style>
-
 </head>
+
 <body>
 
-<h1>🏏 Live Match</h1>
+  <h1>🏏 Live Match</h1>
 
-<button onclick="loadMatch()">Load Match</button>
+  <button onclick="loadMatch()">Load Match</button>
 
-<div id="result"></div>
+  <div id="result"></div>
 
-<script src="matches.js"></script>
+  <script>
+    async function loadMatch() {
+      try {
+        const res = await fetch('/api/matches');
+        const data = await res.json();
+
+        document.getElementById('result').innerText =
+          JSON.stringify(data, null, 2);
+
+      } catch (err) {
+        document.getElementById('result').innerText = "Error loading data";
+      }
+    }
+  </script>
 
 </body>
 </html>
