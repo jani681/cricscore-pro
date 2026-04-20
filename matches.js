@@ -1,26 +1,17 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.getElementById("loadBtn").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  status.innerText = "Loading...";
 
-  document.getElementById("loadBtn").addEventListener("click", async function () {
+  try {
+    const res = await fetch("https://api.cricapi.com/v1/currentMatches?apikey=demo&offset=0");
+    const data = await res.json();
 
-    const result = document.getElementById("result");
-    result.innerText = "Loading...";
-
-    try {
-      // ⚠️ TEMP STATIC DATA (backend issue avoid karne ke liye)
-      const data = {
-        match: "Pakistan vs India",
-        score: "250/3 (40 overs)"
-      };
-
-      result.innerHTML = `
-        <h3>${data.match}</h3>
-        <p>${data.score}</p>
-      `;
-
-    } catch (err) {
-      result.innerText = "Error loading data";
+    if (data.data && data.data.length > 0) {
+      status.innerText = JSON.stringify(data.data[0], null, 2);
+    } else {
+      status.innerText = "No matches found";
     }
-
-  });
-
+  } catch (err) {
+      status.innerText = "Error loading data";
+  }
 });
