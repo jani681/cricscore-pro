@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Match</title>
+  <title>Test</title>
 </head>
 <body>
 
-<h1>🏏 Live Match</h1>
+<h1>Test Page</h1>
 
-<button id="loadBtn">Load Match</button>
+<button onclick="loadMatch()">Click Me</button>
 
-<div id="result"></div>
+<p id="result"></p>
 
-<script src="matches.js"></script>
+<script>
+  alert("JS LOADED");
+
+  function loadMatch() {
+    document.getElementById("result").innerText = "WORKING ✅";
+  }
+</script>
 
 </body>
 </html>
