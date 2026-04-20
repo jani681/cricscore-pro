@@ -2,19 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CricScore Pro Max</title>
+<title>CricScore Secure</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body { margin:0; font-family:Arial; background:#0b1e35; color:white; }
 
-header {
-  background:#061425;
-  padding:15px;
-  text-align:center;
-  font-size:20px;
-  font-weight:bold;
-}
+header { background:#061425; padding:15px; text-align:center; }
 
 .container { padding:15px; }
 
@@ -24,32 +18,9 @@ header {
   margin-bottom:10px;
   border-radius:10px;
   cursor:pointer;
-  position:relative;
 }
 
-.badge {
-  position:absolute;
-  top:10px;
-  right:10px;
-  padding:4px 8px;
-  border-radius:5px;
-  font-size:12px;
-}
-
-.live { background:red; }
-.completed { background:gray; }
-.upcoming { background:orange; }
-
-.score { color:#00d4ff; margin-top:5px; }
-
-.manual {
-  background:#061425;
-  padding:10px;
-  margin-bottom:15px;
-  border-radius:10px;
-}
-
-input {
+input, textarea {
   width:100%;
   padding:8px;
   margin-bottom:6px;
@@ -61,142 +32,169 @@ button {
   width:100%;
   padding:10px;
   border:none;
-  border-radius:5px;
   background:#00d4ff;
+  border-radius:5px;
+  margin-bottom:8px;
   cursor:pointer;
 }
 
-.back {
-  margin-bottom:10px;
-  width:auto;
+.login {
+  max-width:300px;
+  margin:100px auto;
+  background:#061425;
+  padding:20px;
+  border-radius:10px;
+}
+
+.whatsapp {
+  background:#25D366;
+  color:white;
+  padding:10px;
+  border-radius:5px;
+  display:block;
+  text-align:center;
 }
 </style>
 </head>
 
 <body>
 
-<header>🏏 CricScore Pro Max</header>
+<header>
+🏏 CricScore Secure  
+<br>
+Admin: Touqeer Iqbal Baghoor  
+<br>
+<a href="https://wa.me/923015800630" style="color:#25D366">WhatsApp</a>
+</header>
 
-<div id="app" class="container"></div>
+<div id="app"></div>
 
 <script>
 
-let allMatches = [];
+let isLoggedIn = localStorage.getItem("login") === "true";
 let manualMatches = JSON.parse(localStorage.getItem("manualMatches") || "[]");
+let apiMatches = [];
+let combined = [];
 
-// Add manual match
-function addMatch() {
-  const t1 = document.getElementById("team1").value;
-  const t2 = document.getElementById("team2").value;
-  const status = document.getElementById("status").value;
+// LOGIN SCREEN
+function showLogin(){
+  document.getElementById("app").innerHTML=`
+    <div class="login">
+      <h3>Admin Login</h3>
+      <input id="user" placeholder="Username">
+      <input id="pass" type="password" placeholder="Password">
+      <button onclick="login()">Login</button>
+    </div>
+  `;
+}
 
-  if (!t1 || !t2 || !status) return alert("Fill all fields");
+// LOGIN FUNCTION
+function login(){
+  const u=document.getElementById("user").value;
+  const p=document.getElementById("pass").value;
 
-  manualMatches.push({
-    team1:t1, team2:t2, status:status, state:"Manual"
-  });
+  if(u==="admin" && p==="1234"){
+    localStorage.setItem("login","true");
+    isLoggedIn=true;
+    showList();
+  } else {
+    alert("Wrong login");
+  }
+}
 
-  localStorage.setItem("manualMatches", JSON.stringify(manualMatches));
+// LOGOUT
+function logout(){
+  localStorage.removeItem("login");
+  isLoggedIn=false;
+  showLogin();
+}
+
+// ADD MATCH
+function addMatch(){
+  const t1=team1.value;
+  const t2=team2.value;
+  const status=document.getElementById("status").value;
+  const players=document.getElementById("players").value;
+  const whatsapp=document.getElementById("whatsapp").value;
+
+  manualMatches.push({team1:t1,team2:t2,status,players,whatsapp,state:"Manual"});
+  localStorage.setItem("manualMatches",JSON.stringify(manualMatches));
 
   showList();
 }
 
-// Load API matches
-async function loadMatches() {
-  try {
-    const res = await fetch("/api/matches");
-    const data = await res.json();
+// LOAD API
+async function loadMatches(){
+  const res=await fetch("/api/matches");
+  const data=await res.json();
 
-    allMatches = [];
+  apiMatches=[];
 
-    data.typeMatches.forEach(type => {
-      type.seriesMatches.forEach(series => {
-        if (series.seriesAdWrapper) {
-          series.seriesAdWrapper.matches.forEach(match => {
-
-            allMatches.push({
-              team1: match.matchInfo.team1.teamName,
-              team2: match.matchInfo.team2.teamName,
-              status: match.matchInfo.status,
-              state: match.matchInfo.state,
-              score1: match.matchScore?.team1Score?.inngs1,
-              score2: match.matchScore?.team2Score?.inngs1
-            });
-
+  data.typeMatches.forEach(t=>{
+    t.seriesMatches.forEach(s=>{
+      if(s.seriesAdWrapper){
+        s.seriesAdWrapper.matches.forEach(m=>{
+          apiMatches.push({
+            team1:m.matchInfo.team1.teamName,
+            team2:m.matchInfo.team2.teamName,
+            status:m.matchInfo.status
           });
-        }
-      });
+        });
+      }
     });
+  });
 
-    showList();
-
-  } catch {
-    document.getElementById("app").innerHTML = "Error loading matches";
-  }
+  showList();
 }
 
-// Show list
-function showList() {
-  const app = document.getElementById("app");
+// SHOW LIST
+function showList(){
+  combined=[...manualMatches,...apiMatches];
 
-  app.innerHTML = `
-    <div class="manual">
-      <h3>Add Match</h3>
-      <input id="team1" placeholder="Team 1">
-      <input id="team2" placeholder="Team 2">
-      <input id="status" placeholder="Status">
-      <button onclick="addMatch()">Add Match</button>
-    </div>
-  `;
+  let adminPanel = isLoggedIn ? `
+    <button onclick="logout()">Logout</button>
+    <h3>Add Match</h3>
+    <input id="team1" placeholder="Team 1">
+    <input id="team2" placeholder="Team 2">
+    <input id="status" placeholder="Status">
+    <textarea id="players" placeholder="Players"></textarea>
+    <input id="whatsapp" placeholder="WhatsApp">
+    <button onclick="addMatch()">Add</button>
+  ` : `<button onclick="showLogin()">Admin Login</button>`;
 
-  const combined = [...manualMatches, ...allMatches];
+  document.getElementById("app").innerHTML = adminPanel;
 
-  combined.forEach((m,i) => {
-
-    let badge="UPCOMING", cls="upcoming";
-    if (m.state==="In Progress") { badge="LIVE"; cls="live"; }
-    else if (m.state==="Complete") { badge="RESULT"; cls="completed"; }
-    else if (m.state==="Manual") { badge="LOCAL"; cls="upcoming"; }
-
-    app.innerHTML += `
+  combined.forEach((m,i)=>{
+    document.getElementById("app").innerHTML += `
       <div class="card" onclick="showDetails(${i})">
-        <div class="badge ${cls}">${badge}</div>
         <b>${m.team1} vs ${m.team2}</b>
-        <div class="score">
-          ${m.score1 ? `${m.score1.runs}/${m.score1.wickets} (${m.score1.overs})` : ""}
-          <br>
-          ${m.score2 ? `${m.score2.runs}/${m.score2.wickets} (${m.score2.overs})` : ""}
-        </div>
         <div>${m.status}</div>
       </div>
     `;
   });
 }
 
-// Show details
-function showDetails(i) {
-  const combined = [...manualMatches, ...allMatches];
-  const m = combined[i];
+// DETAILS
+function showDetails(i){
+  const m=combined[i];
 
-  document.getElementById("app").innerHTML = `
-    <button class="back" onclick="showList()">⬅ Back</button>
+  document.getElementById("app").innerHTML=`
+    <button onclick="showList()">⬅ Back</button>
 
     <h2>${m.team1} vs ${m.team2}</h2>
-
-    <h3>Score</h3>
-    <p>
-      ${m.score1 ? `${m.score1.runs}/${m.score1.wickets} (${m.score1.overs})` : "No score"}
-      <br>
-      ${m.score2 ? `${m.score2.runs}/${m.score2.wickets} (${m.score2.overs})` : ""}
-    </p>
-
-    <h3>Status</h3>
     <p>${m.status}</p>
+
+    <h3>Players</h3>
+    <p>${m.players || "N/A"}</p>
+
+    ${m.whatsapp ? `<a class="whatsapp" href="https://wa.me/${m.whatsapp}" target="_blank">WhatsApp</a>` : ""}
   `;
 }
 
-// Start
-loadMatches();
+// START
+if(isLoggedIn) loadMatches();
+else showLogin();
+
 setInterval(loadMatches,10000);
 
 </script>
