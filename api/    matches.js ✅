@@ -4,7 +4,7 @@ export default async function handler(req, res) {
       method: "GET",
       headers: {
         "X-RapidAPI-Key": "YOUR_RAPIDAPI_KEY",
-        "X-RapidAPI-Host": "cricbuzz-cricket.p.rapidapi.com"
+        "X-RapidAPI-Host": ""45de809bc2mshae44e2328038bd2p15397djsn434507fd5798
       }
     });
 
