@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Cricscore Pro</title>
+  <title>CricScore Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -28,8 +28,9 @@
     .card {
       background: #112b4a;
       padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 10px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      position: relative;
     }
 
     .teams {
@@ -37,11 +38,30 @@
       font-weight: bold;
     }
 
-    .status {
-      font-size: 14px;
+    .score {
       color: #00d4ff;
       margin-top: 5px;
     }
+
+    .status {
+      font-size: 13px;
+      margin-top: 5px;
+      color: #aaa;
+    }
+
+    .badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .live { background: red; }
+    .upcoming { background: orange; }
+    .completed { background: gray; }
 
     .manual {
       background: #061425;
@@ -67,30 +87,24 @@
       font-weight: bold;
       cursor: pointer;
     }
-
-    h2 {
-      margin-top: 0;
-    }
   </style>
 </head>
 
 <body>
 
-<header>🏏 Cricscore Pro</header>
+<header>🏏 CricScore Pro</header>
 
 <div class="container">
 
-  <!-- Manual Match Add -->
   <div class="manual">
-    <h2>Add Match</h2>
-    <input id="team1" placeholder="Team 1 (e.g Pakistan)">
-    <input id="team2" placeholder="Team 2 (e.g India)">
-    <input id="status" placeholder="Status (e.g Pakistan 120/3)">
+    <h3>Add Match</h3>
+    <input id="team1" placeholder="Team 1">
+    <input id="team2" placeholder="Team 2">
+    <input id="status" placeholder="Status">
     <button onclick="addMatch()">Add Match</button>
   </div>
 
-  <!-- Matches -->
-  <div id="matches"></div>
+  <div id="matches">Loading...</div>
 
 </div>
 
@@ -98,21 +112,19 @@
 
 let manualMatches = [];
 
-// ✅ Add manual match
+// Add manual match
 function addMatch() {
   const t1 = document.getElementById("team1").value;
   const t2 = document.getElementById("team2").value;
   const status = document.getElementById("status").value;
 
-  if (!t1 || !t2 || !status) {
-    alert("Fill all fields");
-    return;
-  }
+  if (!t1 || !t2 || !status) return alert("Fill all fields");
 
   manualMatches.push({
     team1: t1,
     team2: t2,
-    status: status
+    status: status,
+    type: "manual"
   });
 
   renderMatches([], manualMatches);
@@ -122,7 +134,7 @@ function addMatch() {
   document.getElementById("status").value = "";
 }
 
-// ✅ Fetch API matches
+// Load API matches
 async function loadMatches() {
   try {
     const res = await fetch("/api/matches");
@@ -134,10 +146,17 @@ async function loadMatches() {
       type.seriesMatches.forEach(series => {
         if (series.seriesAdWrapper) {
           series.seriesAdWrapper.matches.forEach(match => {
+
+            const score1 = match.matchScore?.team1Score?.inngs1;
+            const score2 = match.matchScore?.team2Score?.inngs1;
+
             apiMatches.push({
               team1: match.matchInfo.team1.teamName,
               team2: match.matchInfo.team2.teamName,
-              status: match.matchInfo.status
+              status: match.matchInfo.status,
+              state: match.matchInfo.state,
+              score1: score1,
+              score2: score2
             });
           });
         }
@@ -147,11 +166,11 @@ async function loadMatches() {
     renderMatches(apiMatches, manualMatches);
 
   } catch (err) {
-    console.log(err);
+    document.getElementById("matches").innerHTML = "Error loading matches";
   }
 }
 
-// ✅ Render both API + Manual
+// Render matches
 function renderMatches(apiMatches, manualMatches) {
   const container = document.getElementById("matches");
   container.innerHTML = "";
@@ -159,11 +178,32 @@ function renderMatches(apiMatches, manualMatches) {
   const allMatches = [...manualMatches, ...apiMatches];
 
   allMatches.forEach(match => {
+
+    let badgeClass = "upcoming";
+    let badgeText = "UPCOMING";
+
+    if (match.state === "In Progress") {
+      badgeClass = "live";
+      badgeText = "LIVE";
+    } else if (match.state === "Complete") {
+      badgeClass = "completed";
+      badgeText = "RESULT";
+    }
+
     const div = document.createElement("div");
     div.className = "card";
 
     div.innerHTML = `
+      <div class="badge ${badgeClass}">${badgeText}</div>
+
       <div class="teams">${match.team1} vs ${match.team2}</div>
+
+      <div class="score">
+        ${match.score1 ? `${match.score1.runs}/${match.score1.wickets} (${match.score1.overs})` : ""}
+        <br>
+        ${match.score2 ? `${match.score2.runs}/${match.score2.wickets} (${match.score2.overs})` : ""}
+      </div>
+
       <div class="status">${match.status}</div>
     `;
 
@@ -171,8 +211,9 @@ function renderMatches(apiMatches, manualMatches) {
   });
 }
 
-// Load on start
+// Auto refresh
 loadMatches();
+setInterval(loadMatches, 10000);
 
 </script>
 
