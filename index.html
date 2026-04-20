@@ -7,14 +7,14 @@
 
 <h1>🏏 Live Match</h1>
 
-<button id="loadBtn">Load Match</button>
+<button onclick="loadMatch()">Load Match</button>
 
 <p id="result"></p>
 
 <script>
-  document.getElementById("loadBtn").addEventListener("click", function () {
-    document.getElementById("result").innerText = "Working ✅ Button Clicked!";
-  });
+function loadMatch() {
+  document.getElementById("result").innerText = "Working ✅ Button Clicked!";
+}
 </script>
 
 </body>
