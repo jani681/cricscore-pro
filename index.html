@@ -2,118 +2,179 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CricScore Pro</title>
+  <title>Cricscore Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b1c2c;
+      font-family: Arial;
+      background: #0b1e35;
       color: white;
-      padding: 10px;
     }
 
-    h1 {
+    header {
+      background: #061425;
+      padding: 15px;
       text-align: center;
-      margin-bottom: 20px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 15px;
     }
 
     .card {
-      background: #132f4c;
+      background: #112b4a;
       padding: 15px;
-      margin-bottom: 12px;
-      border-radius: 12px;
+      margin-bottom: 10px;
+      border-radius: 10px;
     }
 
     .teams {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .score {
       font-size: 16px;
-      color: #00d4ff;
-      margin-bottom: 6px;
+      font-weight: bold;
     }
 
     .status {
       font-size: 14px;
-      color: #aaa;
+      color: #00d4ff;
+      margin-top: 5px;
     }
 
-    .loading {
-      text-align: center;
-      margin-top: 50px;
-      font-size: 18px;
+    .manual {
+      background: #061425;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #00d4ff;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    h2 {
+      margin-top: 0;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>🏏 CricScore Pro</h1>
+<header>🏏 Cricscore Pro</header>
 
-  <div id="matches" class="loading">Loading matches...</div>
+<div class="container">
 
-  <script>
-    async function loadMatches() {
-      try {
-        const res = await fetch('/api/matches');
-        const data = await res.json();
+  <!-- Manual Match Add -->
+  <div class="manual">
+    <h2>Add Match</h2>
+    <input id="team1" placeholder="Team 1 (e.g Pakistan)">
+    <input id="team2" placeholder="Team 2 (e.g India)">
+    <input id="status" placeholder="Status (e.g Pakistan 120/3)">
+    <button onclick="addMatch()">Add Match</button>
+  </div>
 
-        const container = document.getElementById('matches');
-        container.innerHTML = '';
+  <!-- Matches -->
+  <div id="matches"></div>
 
-        const seriesList = data.typeMatches?.[0]?.seriesMatches || [];
+</div>
 
-        if (seriesList.length === 0) {
-          container.innerHTML = "No matches found";
-          return;
+<script>
+
+let manualMatches = [];
+
+// ✅ Add manual match
+function addMatch() {
+  const t1 = document.getElementById("team1").value;
+  const t2 = document.getElementById("team2").value;
+  const status = document.getElementById("status").value;
+
+  if (!t1 || !t2 || !status) {
+    alert("Fill all fields");
+    return;
+  }
+
+  manualMatches.push({
+    team1: t1,
+    team2: t2,
+    status: status
+  });
+
+  renderMatches([], manualMatches);
+
+  document.getElementById("team1").value = "";
+  document.getElementById("team2").value = "";
+  document.getElementById("status").value = "";
+}
+
+// ✅ Fetch API matches
+async function loadMatches() {
+  try {
+    const res = await fetch("/api/matches");
+    const data = await res.json();
+
+    let apiMatches = [];
+
+    data.typeMatches.forEach(type => {
+      type.seriesMatches.forEach(series => {
+        if (series.seriesAdWrapper) {
+          series.seriesAdWrapper.matches.forEach(match => {
+            apiMatches.push({
+              team1: match.matchInfo.team1.teamName,
+              team2: match.matchInfo.team2.teamName,
+              status: match.matchInfo.status
+            });
+          });
         }
+      });
+    });
 
-        seriesList.forEach(series => {
-          const match = series?.seriesAdWrapper?.matches?.[0];
-          if (!match) return;
+    renderMatches(apiMatches, manualMatches);
 
-          const team1 = match.team1?.teamName || "Team 1";
-          const team2 = match.team2?.teamName || "Team 2";
+  } catch (err) {
+    console.log(err);
+  }
+}
 
-          const score1 = match.matchScore?.team1Score?.inngs1;
-          const score2 = match.matchScore?.team2Score?.inngs1;
+// ✅ Render both API + Manual
+function renderMatches(apiMatches, manualMatches) {
+  const container = document.getElementById("matches");
+  container.innerHTML = "";
 
-          const status = match.status || "No status";
+  const allMatches = [...manualMatches, ...apiMatches];
 
-          const div = document.createElement('div');
-          div.className = 'card';
+  allMatches.forEach(match => {
+    const div = document.createElement("div");
+    div.className = "card";
 
-          div.innerHTML = `
-            <div class="teams">${team1} vs ${team2}</div>
+    div.innerHTML = `
+      <div class="teams">${match.team1} vs ${match.team2}</div>
+      <div class="status">${match.status}</div>
+    `;
 
-            <div class="score">
-              ${score1 ? `${score1.runs}/${score1.wickets} (${score1.overs} ov)` : ''}
-              <br>
-              ${score2 ? `${score2.runs}/${score2.wickets} (${score2.overs} ov)` : ''}
-            </div>
+    container.appendChild(div);
+  });
+}
 
-            <div class="status">${status}</div>
-          `;
+// Load on start
+loadMatches();
 
-          container.appendChild(div);
-        });
-
-      } catch (error) {
-        document.getElementById('matches').innerHTML = "Error loading matches";
-        console.error(error);
-      }
-    }
-
-    loadMatches();
-
-    // auto refresh every 30 sec
-    setInterval(loadMatches, 30000);
-  </script>
+</script>
 
 </body>
 </html>
