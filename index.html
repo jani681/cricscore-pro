@@ -2,6 +2,39 @@
 <html>
 <head>
   <title>Live Match</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #0f172a;
+      color: white;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #22c55e;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #22c55e;
+      border: none;
+      border-radius: 8px;
+      color: black;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e293b;
+      border-radius: 10px;
+      white-space: pre-line;
+    }
+  </style>
+
 </head>
 <body>
 
@@ -9,7 +42,7 @@
 
 <button onclick="loadMatch()">Load Match</button>
 
-<p id="result"></p>
+<div id="result"></div>
 
 <script src="matches.js"></script>
 
