@@ -5,13 +5,17 @@
 </head>
 <body>
 
-  <h1>🏏 Live Match</h1>
+<h1>🏏 Live Match</h1>
 
-  <button id="btn">Load Match</button>
+<button id="loadBtn">Load Match</button>
 
-  <p id="result"></p>
+<p id="result"></p>
 
-  <script src="./matches.js"></script>
+<script>
+  document.getElementById("loadBtn").addEventListener("click", function () {
+    document.getElementById("result").innerText = "Working ✅ Button Clicked!";
+  });
+</script>
 
 </body>
 </html>
