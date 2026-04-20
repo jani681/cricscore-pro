@@ -1,28 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Live Cricket</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Cricket Scores</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .match {
+      background: #1e293b;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    .teams {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .status {
+      color: #38bdf8;
+      margin-top: 5px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Loading matches...</h2>
+  <h1>🏏 Live Cricket Scores</h1>
 
-<script>
-async function loadMatches() {
-  try {
-    const res = await fetch("/api/matches");
-    const data = await res.json();
+  <div id="matches">Loading...</div>
 
-    document.body.innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+  <script>
+    async function loadMatches() {
+      try {
+        const res = await fetch("/api/matches");
+        const data = await res.json();
 
-  } catch (err) {
-    document.body.innerHTML = "Error loading matches";
-    console.log(err);
-  }
-}
+        const container = document.getElementById("matches");
+        container.innerHTML = "";
 
-loadMatches();
-</script>
+        const matches =
+          data.typeMatches?.[0]?.seriesMatches?.flatMap(s =>
+            s.seriesAdWrapper?.matches || []
+          ) || [];
+
+        if (matches.length === 0) {
+          container.innerHTML = "No matches found";
+          return;
+        }
+
+        matches.forEach(match => {
+          const team1 = match.matchInfo?.team1?.teamName || "Team 1";
+          const team2 = match.matchInfo?.team2?.teamName || "Team 2";
+          const status = match.matchInfo?.status || "No status";
+
+          const div = document.createElement("div");
+          div.className = "match";
+
+          div.innerHTML = `
+            <div class="teams">${team1} vs ${team2}</div>
+            <div class="status">${status}</div>
+          `;
+
+          container.appendChild(div);
+        });
+
+      } catch (error) {
+        document.getElementById("matches").innerHTML = "Error loading matches";
+        console.error(error);
+      }
+    }
+
+    loadMatches();
+  </script>
 
 </body>
 </html>
