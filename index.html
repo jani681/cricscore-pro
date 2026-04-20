@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Cricket</title>
+</head>
+<body>
+
+<h1>Loading matches...</h1>
+
 <script>
 async function loadMatches() {
   try {
@@ -10,13 +19,15 @@ async function loadMatches() {
     });
 
     const data = await res.json();
-    console.log(data);
 
-    document.body.innerHTML += "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+    document.body.innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
   } catch (err) {
-    console.log(err);
+    document.body.innerHTML = "ERROR: " + err;
   }
 }
 
 loadMatches();
 </script>
+
+</body>
+</html>
