@@ -1,33 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Live Cricket</title>
-</head>
-<body>
-
-<h1>Loading matches...</h1>
-
 <script>
 async function loadMatches() {
   try {
-    const res = await fetch("https://cricbuzz-cricket.p.rapidapi.com/matches/v1/recent", {
-      method: "GET",
-      headers: {
-        "X-RapidAPI-Key": "45de809bc2mshae44e2328038bd2p15397djsn434507fd5798,
-        "X-RapidAPI-Host": "cricbuzz-cricket.p.rapidapi.com"
-      }
-    });
-
+    const res = await fetch("/api/matches");
     const data = await res.json();
 
     document.body.innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
   } catch (err) {
     document.body.innerHTML = "ERROR: " + err;
+    console.log(err);
   }
 }
 
 loadMatches();
 </script>
-
-</body>
-</html>
