@@ -1,63 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Live Match</title>
-
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      background: #0f172a;
-      color: white;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #22c55e;
-    }
-
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #22c55e;
-      border: none;
-      border-radius: 8px;
-      color: black;
-      cursor: pointer;
-    }
-
-    #result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #1e293b;
-      border-radius: 10px;
-      white-space: pre-line;
-    }
-  </style>
-</head>
-
-<body>
-
-  <h1>🏏 Live Match</h1>
-
-  <button onclick="loadMatch()">Load Match</button>
-
-  <div id="result"></div>
-
-  <script>
-    async function loadMatch() {
-      try {
-        const res = await fetch('/api/matches');
-        const data = await res.json();
-
-        document.getElementById('result').innerText =
-          JSON.stringify(data, null, 2);
-
-      } catch (err) {
-        document.getElementById('result').innerText = "Error loading data";
+<script>
+async function loadMatches() {
+  try {
+    const res = await fetch("https://cricbuzz-cricket.p.rapidapi.com/matches/v1/recent", {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": "45de809bc2mshae44e2328038bd2p15397djsn434507fd5798,
+        "X-RapidAPI-Host": "cricbuzz-cricket.p.rapidapi.com"
       }
-    }
-  </script>
+    });
 
-</body>
-</html>
+    const data = await res.json();
+    console.log(data);
+
+    document.body.innerHTML += "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+loadMatches();
+</script>
