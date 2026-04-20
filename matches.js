@@ -1,17 +1,5 @@
-document.getElementById("loadBtn").addEventListener("click", async () => {
-  const status = document.getElementById("status");
-  status.innerText = "Loading...";
+document.getElementById("btn").addEventListener("click", loadMatch);
 
-  try {
-    const res = await fetch("https://api.cricapi.com/v1/currentMatches?apikey=demo&offset=0");
-    const data = await res.json();
-
-    if (data.data && data.data.length > 0) {
-      status.innerText = JSON.stringify(data.data[0], null, 2);
-    } else {
-      status.innerText = "No matches found";
-    }
-  } catch (err) {
-      status.innerText = "Error loading data";
-  }
-});
+function loadMatch() {
+  document.getElementById("result").innerText = "Working ✅ Button Click Ho Gaya";
+}
