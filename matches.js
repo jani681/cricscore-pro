@@ -9,11 +9,16 @@ async function loadMatch() {
       const match = data.data[0];
 
       document.getElementById("result").innerText =
-        match.name + "\n" + match.status;
+        "🏏 " + match.name + "\n" +
+        "📊 " + match.status;
     } else {
-      document.getElementById("result").innerText = "No match found";
+      // 👇 fallback (jab koi live match na ho)
+      document.getElementById("result").innerText =
+        "No live match 😔\n\nExample:\nPakistan vs India\nMatch starts soon";
     }
+
   } catch (error) {
-    document.getElementById("result").innerText = "Error loading match";
+    document.getElementById("result").innerText =
+      "Error loading match ❌";
   }
 }
