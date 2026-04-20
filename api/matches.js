@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const response = await fetch("https://cricbuzz-cricket.p.rapidapi.com/matches/v1/live", {
       method: "GET",
       headers: {
-        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+        "X-RapidAPI-Key": process.env.RAPID_API_KEY,
         "X-RapidAPI-Host": "cricbuzz-cricket.p.rapidapi.com"
       }
     });
@@ -12,6 +12,6 @@ export default async function handler(req, res) {
     res.status(200).json(data);
 
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch matches" });
+    res.status(500).json({ error: "Error fetching data" });
   }
 }
