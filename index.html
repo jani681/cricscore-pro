@@ -13,10 +13,6 @@ body {
   text-align: center;
 }
 
-h1 {
-  margin-top: 20px;
-}
-
 .card {
   background: #0c3c54;
   margin: 15px;
@@ -31,7 +27,6 @@ button {
   border-radius: 5px;
   background: #00c3ff;
   color: black;
-  font-weight: bold;
 }
 </style>
 </head>
@@ -39,14 +34,12 @@ button {
 <body>
 
 <h1>🏏 CricScore Pro</h1>
-
 <button onclick="loadMatches()">🔄 Refresh</button>
 
 <div id="matches">Loading...</div>
 
 <script>
 
-// 🔥 MANUAL MATCHES (LOCAL ADD)
 let manualMatches = [
   {
     team1: "Baghoor XI",
@@ -56,76 +49,50 @@ let manualMatches = [
   }
 ];
 
-// 🔥 LOAD MATCHES FUNCTION
 async function loadMatches() {
+
   let container = document.getElementById("matches");
-  container.innerHTML = "Loading matches...";
+  container.innerHTML = "";
+
+  // ✅ ALWAYS show manual first (no blank screen)
+  manualMatches.forEach(m => {
+    container.innerHTML += `
+      <div class="card">
+        <h3>${m.team1} vs ${m.team2}</h3>
+        <p>${m.score}</p>
+        <small>${m.status}</small>
+      </div>
+    `;
+  });
 
   try {
-    let res = await fetch("https://api.cricapi.com/v1/cricScore?apikey=45de809bc2mshae44e2328038bd2p15397djsn434507fd5798);
+    let res = await fetch("https://api.cricapi.com/v1/cricScore?apikey=demo");
     let data = await res.json();
 
-    console.log(data);
+    if (data && data.data) {
 
-    container.innerHTML = "";
-
-    // ✅ API DATA SHOW
-    if (data && data.data && data.data.length > 0) {
-
-      data.data.slice(0, 5).forEach(match => {
-
-        let team1 = match.t1 || "Team 1";
-        let team2 = match.t2 || "Team 2";
+      data.data.slice(0,5).forEach(match => {
 
         let score = "No score";
         if (match.score && match.score.length > 0) {
           score = match.score.map(s => `${s.r}/${s.w} (${s.o})`).join(" vs ");
         }
 
-        let status = match.status || "No status";
-
         container.innerHTML += `
           <div class="card">
-            <h3>${team1} vs ${team2}</h3>
+            <h3>${match.t1} vs ${match.t2}</h3>
             <p>${score}</p>
-            <small>${status}</small>
+            <small>${match.status}</small>
           </div>
         `;
       });
     }
 
-    // ✅ MANUAL MATCHES ADD
-    manualMatches.forEach(m => {
-      container.innerHTML += `
-        <div class="card">
-          <h3>${m.team1} vs ${m.team2}</h3>
-          <p>${m.score}</p>
-          <small>${m.status}</small>
-        </div>
-      `;
-    });
-
   } catch (err) {
-
-    console.log(err);
-
-    container.innerHTML = `
-      <div class="card">⚠️ API error — showing local matches</div>
-    `;
-
-    manualMatches.forEach(m => {
-      container.innerHTML += `
-        <div class="card">
-          <h3>${m.team1} vs ${m.team2}</h3>
-          <p>${m.score}</p>
-          <small>${m.status}</small>
-        </div>
-      `;
-    });
+    console.log("API failed - showing manual only");
   }
 }
 
-// AUTO LOAD
 loadMatches();
 
 </script>
