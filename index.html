@@ -7,21 +7,27 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#003d3d,#001a1a);
+  font-family:sans-serif;
+  background:linear-gradient(135deg,#002f2f,#004d40);
   color:white;
 }
 
-.header{text-align:center;padding:15px}
+.header{
+  text-align:center;
+  padding:15px;
+  background:#00332f;
+}
+
+.container{padding:15px;}
 
 .card{
   background:#ffffff10;
-  margin:15px;
   padding:15px;
-  border-radius:15px;
+  border-radius:12px;
+  margin-bottom:15px;
 }
 
-input,select,button{
+input{
   width:100%;
   padding:10px;
   margin:5px 0;
@@ -29,49 +35,88 @@ input,select,button{
   border:none;
 }
 
-button{background:#00c853;color:white;font-weight:bold}
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.create{
+  background:#00c853;
+  color:white;
+  width:100%;
+}
 
 .score-btns button{
   width:30%;
   margin:5px;
-  background:orange;
+  background:linear-gradient(45deg,#ff9800,#ffc107);
+  color:black;
+  font-weight:bold;
 }
 
-.wicket{background:red}
+.wicket{
+  background:red !important;
+  color:white !important;
+}
+
+.delete{
+  background:#00c853;
+  width:100%;
+  margin-top:10px;
+}
 
 .anim{
   text-align:center;
-  font-size:30px;
-  margin-top:10px;
-  animation:pop 0.5s;
+  font-size:28px;
+  color:#FFD700;
+  animation:pop 0.4s;
 }
 
 @keyframes pop{
-  0%{transform:scale(0)}
-  100%{transform:scale(1)}
+  0%{transform:scale(0.5);}
+  100%{transform:scale(1);}
+}
+
+.player{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:5px 0;
+}
+
+.player img{
+  width:35px;
+  height:35px;
+  border-radius:50%;
 }
 </style>
+
 </head>
 
 <body>
 
 <div class="header">
 <h2>🏏 CricScore VIP</h2>
+<p>Admin: Touqeer Iqbal Baghoor</p>
+<a href="https://wa.me/923015800630" style="color:#00e676">📱 WhatsApp</a>
 </div>
+
+<div class="container">
 
 <div class="card">
 <h3>Create Match</h3>
-
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
-
-<input id="players1" placeholder="Team1 Players (11 names comma)">
-<input id="players2" placeholder="Team2 Players (11 names comma)">
-
-<button onclick="createMatch()">Create Match</button>
+<input id="t1" placeholder="Team 1">
+<input id="t2" placeholder="Team 2">
+<input id="p1" placeholder="Team1 Players (name|wa|pic , 11 players)">
+<input id="p2" placeholder="Team2 Players (name|wa|pic , 11 players)">
+<button class="create" onclick="createMatch()">Create Match</button>
 </div>
 
 <div id="matches"></div>
+
+</div>
 
 <script>
 
@@ -81,139 +126,162 @@ function save(){
   localStorage.setItem("matches", JSON.stringify(matches));
 }
 
-function createMatch(){
-  let t1 = team1.value;
-  let t2 = team2.value;
-
-  let p1 = players1.value.split(",");
-  let p2 = players2.value.split(",");
-
-  if(p1.length < 2 || p2.length < 2){
-    alert("Min 2 players zaroor daalo");
-    return;
-  }
-
-  matches.push({
-    team1:t1,
-    team2:t2,
-    p1:p1,
-    p2:p2,
-    score:0,
-    wickets:0,
-    balls:0,
-    striker:p1[0],
-    nonStriker:p1[1],
-    bowler:p2[0],
-    anim:""
+function parsePlayers(str){
+  return str.split(",").map(p=>{
+    let [name,wa,pic]=p.split("|");
+    return {
+      name:name.trim(),
+      wa:wa||"",
+      pic:pic||"",
+      runs:0,
+      wickets:0
+    }
   });
+}
 
-  save();
-  render();
+function createMatch(){
+
+let t1=document.getElementById("t1").value;
+let t2=document.getElementById("t2").value;
+
+let p1=parsePlayers(document.getElementById("p1").value);
+let p2=parsePlayers(document.getElementById("p2").value);
+
+if(p1.length!=11 || p2.length!=11){
+alert("11 players required");
+return;
+}
+
+matches.push({
+t1,t2,
+p1,p2,
+score:0,
+wickets:0,
+striker:0,
+bowler:0,
+anim:""
+});
+
+save();
+render();
 }
 
 function addRun(i,run){
-  let m = matches[i];
-  m.score += run;
-  m.balls++;
+let m=matches[i];
+m.score+=run;
+m.p1[m.striker].runs += run;
 
-  if(run===4) m.anim="🔥 FOUR!";
-  if(run===6) m.anim="💥 SIX!";
-  if(run===1||run===3){
-    let t=m.striker;
-    m.striker=m.nonStriker;
-    m.nonStriker=t;
-  }
+m.anim = run==6 ? "🔥 SIX!" : "+"+run;
 
-  overCheck(m);
-  save();
-  render();
+save();
+render();
+
+setTimeout(()=>{
+m.anim="";
+render();
+},1500);
 }
 
 function wicket(i){
-  let m = matches[i];
-  m.wickets++;
-  m.balls++;
-  m.anim="❌ WICKET!";
+let m=matches[i];
+m.wickets++;
+m.p2[m.bowler].wickets++;
 
-  m.striker="OUT";
+m.anim="💥 WICKET!";
 
-  overCheck(m);
-  save();
-  render();
+save();
+render();
+
+setTimeout(()=>{
+m.anim="";
+render();
+},1500);
 }
 
-function overCheck(m){
-  if(m.balls===6){
-    m.balls=0;
-    let t=m.striker;
-    m.striker=m.nonStriker;
-    m.nonStriker=t;
-  }
+function changeStriker(i,val){
+matches[i].striker=val;
+save();
+render();
+}
+
+function changeBowler(i,val){
+matches[i].bowler=val;
+save();
+render();
+}
+
+function del(i){
+matches.splice(i,1);
+save();
+render();
 }
 
 function render(){
-  let html="";
+let html="";
 
-  matches.forEach((m,i)=>{
+matches.forEach((m,i)=>{
 
-    let p1options = m.p1.map(p=>`<option>${p}</option>`).join("");
-    let p2options = m.p2.map(p=>`<option>${p}</option>`).join("");
+html+=`
+<div class="card">
+<h3>${m.t1} vs ${m.t2}</h3>
+<h2>${m.score}/${m.wickets}</h2>
 
-    html+=`
-    <div class="card">
-      <h3>${m.team1} vs ${m.team2}</h3>
-      <h2>${m.score}/${m.wickets}</h2>
-      <p>Over: ${Math.floor(m.balls/6)}.${m.balls}</p>
+<p>🏏 ${m.p1[m.striker].name} (${m.p1[m.striker].runs})</p>
+<p>🎯 ${m.p2[m.bowler].name} (${m.p2[m.bowler].wickets})</p>
 
-      <p>🏏 Striker: ${m.striker}</p>
-      <p>🏏 Non-Striker: ${m.nonStriker}</p>
-      <p>🎯 Bowler: ${m.bowler}</p>
+<select onchange="changeStriker(${i},this.value)">
+${m.p1.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+</select>
 
-      <select onchange="setStriker(${i},this.value)">
-        <option>Select Striker</option>
-        ${p1options}
-      </select>
+<select onchange="changeBowler(${i},this.value)">
+${m.p2.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+</select>
 
-      <select onchange="setBowler(${i},this.value)">
-        <option>Select Bowler</option>
-        ${p2options}
-      </select>
+<div class="score-btns">
+<button onclick="addRun(${i},1)">1</button>
+<button onclick="addRun(${i},2)">2</button>
+<button onclick="addRun(${i},3)">3</button>
+<button onclick="addRun(${i},4)">4</button>
+<button onclick="addRun(${i},6)">6</button>
+<button class="wicket" onclick="wicket(${i})">Wicket</button>
+</div>
 
-      <div class="score-btns">
-        <button onclick="addRun(${i},1)">1</button>
-        <button onclick="addRun(${i},2)">2</button>
-        <button onclick="addRun(${i},3)">3</button>
-        <button onclick="addRun(${i},4)">4</button>
-        <button onclick="addRun(${i},6)">6</button>
-        <button class="wicket" onclick="wicket(${i})">Wicket</button>
-      </div>
+<div class="anim">${m.anim}</div>
 
-      <div class="anim">${m.anim}</div>
+<h4>Team Players</h4>
 
-      <button onclick="deleteMatch(${i})">Delete</button>
-    </div>
-    `;
-  });
+${m.p1.map(p=>`
+<div class="player">
+<img src="${p.pic}">
+<div>
+<b>${p.name}</b><br>
+📱 ${p.wa}<br>
+Runs: ${p.runs}
+</div>
+</div>
+`).join("")}
 
-  document.getElementById("matches").innerHTML = html;
-}
+<hr>
 
-function setStriker(i,val){
-  matches[i].striker = val;
-  save();
-  render();
-}
+${m.p2.map(p=>`
+<div class="player">
+<img src="${p.pic}">
+<div>
+<b>${p.name}</b><br>
+📱 ${p.wa}<br>
+Wickets: ${p.wickets}
+</div>
+</div>
+`).join("")}
 
-function setBowler(i,val){
-  matches[i].bowler = val;
-  save();
-  render();
-}
+<button class="delete" onclick="del(${i})">Delete Match</button>
 
-function deleteMatch(i){
-  matches.splice(i,1);
-  save();
-  render();
+</div>
+`;
+
+});
+
+document.getElementById("matches").innerHTML=html;
 }
 
 render();
