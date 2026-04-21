@@ -1,86 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>CricScore Pro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial;
-      background: #0b1e2d;
-      color: white;
-      padding: 10px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .card {
-      background: #132f45;
-      margin: 10px 0;
-      padding: 15px;
-      border-radius: 12px;
-    }
-    .teams {
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .score {
-      color: #00e5ff;
-      margin-top: 5px;
-    }
-    .status {
-      margin-top: 5px;
-      font-size: 14px;
-      color: #ccc;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CricScore Pro</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #062b3d;
+  color: white;
+  text-align: center;
+}
+
+h1 {
+  margin-top: 20px;
+}
+
+.card {
+  background: #0c3c54;
+  margin: 15px;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+button {
+  padding: 10px;
+  margin: 10px;
+  border: none;
+  border-radius: 5px;
+  background: #00c3ff;
+  color: black;
+}
+</style>
 </head>
 
 <body>
 
 <h1>🏏 CricScore Pro</h1>
 
+<button onclick="loadMatches()">🔄 Refresh</button>
+
 <div id="matches">Loading...</div>
 
 <script>
+
+// 🔥 MANUAL MATCHES (ADMIN ADD)
+let manualMatches = [
+  {
+    team1: "Baghoor XI",
+    team2: "Faisalabad XI",
+    score: "120/4 vs 118/8",
+    status: "Baghoor XI won by 2 runs"
+  }
+];
+
+// 🔥 LOAD MATCHES
 async function loadMatches() {
+  let container = document.getElementById("matches");
+  container.innerHTML = "Loading matches...";
+
   try {
-    const res = await fetch("/api/matches");
-    const data = await res.json();
+    // ❗ FREE PUBLIC API (NO KEY)
+    let res = await fetch("https://api.cricapi.com/v1/cricScore?apikey=demo");
+    let data = await res.json();
 
-    let html = "";
+    container.innerHTML = "";
 
-    data.forEach(match => {
-      const team1 = match.team1?.teamName || "Team 1";
-      const team2 = match.team2?.teamName || "Team 2";
+    // ✅ API DATA
+    if (data && data.data && data.data.length > 0) {
+      data.data.slice(0,5).forEach(match => {
+        container.innerHTML += `
+          <div class="card">
+            <h3>${match.t1} vs ${match.t2}</h3>
+            <p>${match.score || "No score yet"}</p>
+            <small>${match.status}</small>
+          </div>
+        `;
+      });
+    }
 
-      const score1 = match.team1Score?.inngs1
-        ? `${match.team1Score.inngs1.runs}/${match.team1Score.inngs1.wickets} (${match.team1Score.inngs1.overs} ov)`
-        : "";
-
-      const score2 = match.team2Score?.inngs1
-        ? `${match.team2Score.inngs1.runs}/${match.team2Score.inngs1.wickets} (${match.team2Score.inngs1.overs} ov)`
-        : "";
-
-      const status = match.status || "No status";
-
-      html += `
+    // ✅ MANUAL MATCHES ADD
+    manualMatches.forEach(m => {
+      container.innerHTML += `
         <div class="card">
-          <div class="teams">${team1} vs ${team2}</div>
-          <div class="score">${score1}</div>
-          <div class="score">${score2}</div>
-          <div class="status">${status}</div>
+          <h3>${m.team1} vs ${m.team2}</h3>
+          <p>${m.score}</p>
+          <small>${m.status}</small>
         </div>
       `;
     });
 
-    document.getElementById("matches").innerHTML = html;
-
   } catch (err) {
-    document.getElementById("matches").innerHTML = "Error loading matches";
+    console.log(err);
+
+    // ❌ ERROR FALLBACK
+    container.innerHTML = `
+      <div class="card">
+        ⚠️ API error — showing local matches only
+      </div>
+    `;
+
+    manualMatches.forEach(m => {
+      container.innerHTML += `
+        <div class="card">
+          <h3>${m.team1} vs ${m.team2}</h3>
+          <p>${m.score}</p>
+          <small>${m.status}</small>
+        </div>
+      `;
+    });
   }
 }
 
+// AUTO LOAD
 loadMatches();
+
 </script>
 
 </body>
