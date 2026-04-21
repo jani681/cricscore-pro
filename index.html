@@ -6,37 +6,40 @@
 
   <style>
     body {
+      margin: 0;
       font-family: Arial;
-      background: #0b1c2c;
+      background: #062b3d;
       color: white;
-      margin: 0;
     }
-    h2 {
+
+    header {
+      background: #041f2e;
+      padding: 15px;
       text-align: center;
-      padding: 15px;
-      background: #06121d;
-      margin: 0;
+      font-size: 22px;
+      font-weight: bold;
     }
-    #matches {
-      padding: 15px;
-    }
+
     .card {
-      background: #122b45;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 12px;
+      background: #0a3a52;
+      margin: 20px;
+      padding: 20px;
+      border-radius: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>🏏 CricScore Pro</h2>
-<div id="matches">Loading...</div>
+<header>🏏 CricScore Pro</header>
+
+<div id="app">
+  <p style="text-align:center;">Loading...</p>
+</div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
@@ -50,28 +53,38 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const matchesDiv = document.getElementById("matches");
+  const appDiv = document.getElementById("app");
 
-  onSnapshot(collection(db, "matches"), (snapshot) => {
-    let html = "";
+  async function loadData() {
+    try {
+      const querySnapshot = await getDocs(collection(db, "matches"));
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      html += `
-        <div class="card">
-          <h3>${data.team1} vs ${data.team2}</h3>
-          <p>Score: ${data.score}</p>
-          <p>Status: ${data.status}</p>
-        </div>
-      `;
-    });
+      let html = "";
 
-    matchesDiv.innerHTML = html || "No matches found";
-  }, (error) => {
-    matchesDiv.innerHTML = "Error loading data";
-    console.error(error);
-  });
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        html += `
+          <div class="card">
+            <h2>${data.team1} vs ${data.team2}</h2>
+            <p>Score: ${data.score}</p>
+            <p>Status: ${data.status}</p>
+          </div>
+        `;
+      });
 
+      if (html === "") {
+        html = "<p style='text-align:center;'>No matches found</p>";
+      }
+
+      appDiv.innerHTML = html;
+
+    } catch (error) {
+      appDiv.innerHTML = "<p style='text-align:center;color:red;'>Error loading data</p>";
+      console.error(error);
+    }
+  }
+
+  loadData();
 </script>
 
 </body>
