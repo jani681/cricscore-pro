@@ -1,282 +1,266 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CricScore VIP</title>
 
 <style>
-body{
-margin:0;
-font-family:sans-serif;
-background:linear-gradient(135deg,#00332f,#00695c);
-color:white;
+body {
+  font-family: Arial;
+  background: #064e3b;
+  color: white;
+  padding: 10px;
 }
-
-.container{padding:15px;}
-
-.card{
-background:#ffffff10;
-padding:15px;
-border-radius:12px;
-margin-bottom:15px;
+.card {
+  background: #065f46;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
 }
-
-input,select{
-width:100%;
-padding:10px;
-margin:5px 0;
-border-radius:8px;
-border:none;
+input, textarea, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  border: none;
 }
-
-button{
-padding:10px;
-border:none;
-border-radius:8px;
-margin:5px;
+button {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin: 3px;
 }
+.green { background: #22c55e; }
+.orange { background: orange; }
+.red { background: red; color:white; }
 
-.green{background:#00c853;color:white;width:100%;}
-.score button{width:30%;background:orange;}
-.wicket{background:red;color:white;}
-.delete{background:#ff1744;color:white;width:100%;}
-
-.player{
-display:flex;
-align-items:center;
-gap:10px;
-margin:5px 0;
+.player {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:5px 0;
 }
-
-.player img{
-width:35px;
-height:35px;
-border-radius:50%;
-}
-
-.anim{
-text-align:center;
-font-size:20px;
-color:yellow;
-animation:pop 0.5s ease;
-}
-
-@keyframes pop{
-0%{transform:scale(0.5);}
-100%{transform:scale(1);}
+.player img {
+  width:40px;
+  height:40px;
+  border-radius:50%;
 }
 </style>
-
 </head>
 
 <body>
-
-<div class="container">
 
 <h2>🏏 CricScore VIP</h2>
 
 <!-- ADMIN -->
 <div class="card">
 <h3>Admin</h3>
-<input id="adminName" placeholder="Admin Name">
-<input id="adminDp" placeholder="Admin DP Image URL">
-<input id="adminWp" placeholder="WhatsApp Number">
+<input id="adminName" placeholder="Name">
+<input type="file" id="adminDP">
+<input id="adminWA" placeholder="WhatsApp Number">
 <button class="green" onclick="saveAdmin()">Save Admin</button>
-<div id="adminShow"></div>
+<div id="adminDisplay"></div>
 </div>
 
 <!-- CREATE MATCH -->
 <div class="card">
 <h3>Create Match</h3>
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
 
-<input id="t1" placeholder="Team 1">
-<input id="t2" placeholder="Team 2">
-
-<input id="p1" placeholder="Team1 Players (11 names)">
-<input id="p2" placeholder="Team2 Players (11 names)">
+<textarea id="players1" placeholder="Team1 Players: name,wa | name,wa"></textarea>
+<textarea id="players2" placeholder="Team2 Players"></textarea>
 
 <button class="green" onclick="createMatch()">Create Match</button>
 </div>
 
+<!-- MATCHES -->
 <div id="matches"></div>
-
-</div>
 
 <script>
 
-let matches = JSON.parse(localStorage.getItem("matches"))||[];
-let admin = JSON.parse(localStorage.getItem("admin"))||{};
+let matches = JSON.parse(localStorage.getItem("matches")) || []
 
-function save(){
-localStorage.setItem("matches",JSON.stringify(matches));
-}
-
+// ADMIN SAVE
 function saveAdmin(){
-admin={
-name:adminName.value,
-dp:adminDp.value,
-wp:adminWp.value
-};
-localStorage.setItem("admin",JSON.stringify(admin));
-showAdmin();
+  let name = document.getElementById("adminName").value
+  let wa = document.getElementById("adminWA").value
+  let file = document.getElementById("adminDP").files[0]
+
+  if(!file){
+    alert("DP select karo")
+    return
+  }
+
+  let reader = new FileReader()
+  reader.onload = function(){
+    localStorage.setItem("admin", JSON.stringify({
+      name, wa, dp: reader.result
+    }))
+    showAdmin()
+  }
+  reader.readAsDataURL(file)
 }
 
+// SHOW ADMIN
 function showAdmin(){
-if(!admin.name) return;
-adminShow.innerHTML=`
-<div style="text-align:center">
-<img src="${admin.dp}" width="80" style="border-radius:50%"><br>
-<b>${admin.name}</b><br>
-<a href="https://wa.me/${admin.wp}" target="_blank">WhatsApp</a>
-</div>
-`;
-}
-showAdmin();
+  let admin = JSON.parse(localStorage.getItem("admin"))
+  if(!admin) return
 
-function createPlayers(str){
-let arr=str.split(",");
-if(arr.length!=11){
-alert("11 players required");
-return null;
+  document.getElementById("adminDisplay").innerHTML = `
+    <img src="${admin.dp}" width="60"><br>
+    ${admin.name}<br>
+    <a href="https://wa.me/${admin.wa}" target="_blank" style="color:lightgreen">WhatsApp</a>
+  `
 }
-return arr.map(n=>({
-name:n.trim(),
-runs:0,
-wickets:0,
-img:"https://i.pravatar.cc/40",
-wp:""
-}));
+showAdmin()
+
+// PLAYERS PARSE
+function parsePlayers(text){
+  if(!text) return []
+  return text.split("|").map(p=>{
+    let parts = p.split(",")
+    return {
+      name: parts[0]?.trim() || "Player",
+      wa: parts[1]?.trim() || "",
+      img: "https://i.pravatar.cc/50",
+      runs:0,
+      wickets:0
+    }
+  })
 }
 
+// CREATE MATCH
 function createMatch(){
-let p1=createPlayers(p1Input.value);
-let p2=createPlayers(p2Input.value);
-if(!p1||!p2)return;
+  let t1 = document.getElementById("team1").value
+  let t2 = document.getElementById("team2").value
 
-matches.push({
-t1:t1.value,
-t2:t2.value,
-p1,p2,
-score:0,
-wickets:0,
-striker:0,
-non:1,
-bowler:0,
-anim:""
-});
-save();
-render();
+  if(!t1 || !t2){
+    alert("Team name required")
+    return
+  }
+
+  let p1 = parsePlayers(document.getElementById("players1").value)
+  let p2 = parsePlayers(document.getElementById("players2").value)
+
+  if(p1.length == 0 || p2.length == 0){
+    alert("Players add karo")
+    return
+  }
+
+  let match = {
+    id: Date.now(),
+    t1,t2,
+    p1,p2,
+    score:0,
+    wickets:0,
+    striker:0,
+    bowler:0
+  }
+
+  matches.push(match)
+  save()
+  render()
 }
 
-function run(i,val){
-let m=matches[i];
-m.score+=val;
-m.p1[m.striker].runs+=val;
+// RUN ADD
+function addRun(id,run){
+  let m = matches.find(x=>x.id==id)
+  if(!m) return
 
-if(val==6)m.anim="🔥 SIX!";
-else m.anim="+"+val;
+  m.score += run
+  m.p1[m.striker].runs += run
 
-swap(m);
-save();
-render();
-
-setTimeout(()=>{m.anim="";render();},1000);
+  save()
+  render()
 }
 
-function swap(m){
-let temp=m.striker;
-m.striker=m.non;
-m.non=temp;
+// WICKET
+function wicket(id){
+  let m = matches.find(x=>x.id==id)
+  if(!m) return
+
+  m.wickets++
+  save()
+  render()
 }
 
-function wicket(i){
-let m=matches[i];
-
-if(m.wickets>=10){alert("All out");return;}
-
-m.wickets++;
-m.anim="💥 WICKET!";
-
-m.striker = (m.striker+1)%11;
-
-save();
-render();
-
-setTimeout(()=>{m.anim="";render();},1000);
+// DELETE
+function deleteMatch(id){
+  matches = matches.filter(x=>x.id!=id)
+  save()
+  render()
 }
 
+// SAVE
+function save(){
+  localStorage.setItem("matches", JSON.stringify(matches))
+}
+
+// RENDER
 function render(){
+  let html=""
 
-let html="";
+  matches.forEach(m=>{
+    html += `
+    <div class="card">
+      <h3>${m.t1} vs ${m.t2}</h3>
+      <h2>${m.score}/${m.wickets}</h2>
 
-matches.forEach((m,i)=>{
+      <div>🏏 ${m.p1[m.striker]?.name}</div>
+      <div>🎯 ${m.p2[m.bowler]?.name}</div>
 
-html+=`
-<div class="card">
+      <select onchange="changeStriker(${m.id}, this.value)">
+        ${m.p1.map((p,i)=>`<option ${i==m.striker?"selected":""} value="${i}">${p.name}</option>`).join("")}
+      </select>
 
-<h3>${m.t1} vs ${m.t2}</h3>
-<h2>${m.score}/${m.wickets}</h2>
+      <select onchange="changeBowler(${m.id}, this.value)">
+        ${m.p2.map((p,i)=>`<option ${i==m.bowler?"selected":""} value="${i}">${p.name}</option>`).join("")}
+      </select>
 
-<div class="anim">${m.anim}</div>
+      <br>
 
-<p>🏏 ${m.p1[m.striker].name} (${m.p1[m.striker].runs})</p>
-<p>🏏 ${m.p1[m.non].name}</p>
-<p>🎯 ${m.p2[m.bowler].name} (${m.p2[m.bowler].wickets})</p>
+      <button class="orange" onclick="addRun(${m.id},1)">1</button>
+      <button class="orange" onclick="addRun(${m.id},2)">2</button>
+      <button class="orange" onclick="addRun(${m.id},3)">3</button>
+      <button class="orange" onclick="addRun(${m.id},4)">4</button>
+      <button class="orange" onclick="addRun(${m.id},6)">6</button>
+      <button class="red" onclick="wicket(${m.id})">Wicket</button>
 
-<select onchange="matches[${i}].striker=this.value;render()">
-${m.p1.map((p,idx)=>`<option value="${idx}" ${idx==m.striker?"selected":""}>${p.name}</option>`).join("")}
-</select>
+      <h4>Team Players</h4>
+      ${m.p1.map(p=>`
+        <div class="player">
+          <img src="${p.img}">
+          ${p.name} (${p.runs})
+          ${p.wa ? `<a href="https://wa.me/${p.wa}" target="_blank">📱</a>` : ""}
+        </div>
+      `).join("")}
 
-<select onchange="matches[${i}].bowler=this.value;render()">
-${m.p2.map((p,idx)=>`<option value="${idx}" ${idx==m.bowler?"selected":""}>${p.name}</option>`).join("")}
-</select>
+      <button class="green" onclick="deleteMatch(${m.id})">Delete</button>
+    </div>
+    `
+  })
 
-<div class="score">
-<button onclick="run(${i},1)">1</button>
-<button onclick="run(${i},2)">2</button>
-<button onclick="run(${i},3)">3</button>
-<button onclick="run(${i},4)">4</button>
-<button onclick="run(${i},6)">6</button>
-<button class="wicket" onclick="wicket(${i})">Wicket</button>
-</div>
-
-<h4>Players</h4>
-
-${m.p1.map(p=>`
-<div class="player">
-<img src="${p.img}">
-${p.name} - Runs: ${p.runs}
-</div>
-`).join("")}
-
-<hr>
-
-${m.p2.map(p=>`
-<div class="player">
-<img src="${p.img}">
-${p.name} - Wickets: ${p.wickets}
-</div>
-`).join("")}
-
-<button class="delete" onclick="del(${i})">Delete Match</button>
-
-</div>
-`;
-
-});
-
-document.getElementById("matches").innerHTML=html;
+  document.getElementById("matches").innerHTML = html
 }
 
-function del(i){
-matches.splice(i,1);
-save();
-render();
+// CHANGE FUNCTIONS (FIXED BUG)
+function changeStriker(id,val){
+  let m = matches.find(x=>x.id==id)
+  m.striker = Number(val)
+  save()
+  render()
 }
 
-render();
+function changeBowler(id,val){
+  let m = matches.find(x=>x.id==id)
+  m.bowler = Number(val)
+  save()
+  render()
+}
+
+render()
 
 </script>
 
-</body>
-</html>
+</body
