@@ -1,186 +1,228 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>CricScore VIP</title>
+  <title>CricScore VIP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#031d22;
-  color:#fff;
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(135deg,#022,#055);
+      color: white;
+    }
 
-.header{
-  text-align:center;
-  padding:20px;
-}
+    header {
+      text-align: center;
+      padding: 20px;
+      font-size: 22px;
+      background: #011;
+    }
 
-.card{
-  background:#fff;
-  color:#000;
-  margin:10px;
-  padding:15px;
-  border-radius:12px;
-}
+    .admin, .creator {
+      padding: 15px;
+      text-align: center;
+    }
 
-button{
-  padding:10px;
-  margin:3px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+    }
 
-.green{background:#00c853;color:#fff;}
-.red{background:#d50000;color:#fff;}
-.blue{background:#2962ff;color:#fff;}
+    button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      background: limegreen;
+      color: white;
+    }
 
-input{
-  width:95%;
-  padding:10px;
-  margin:5px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
+    .card {
+      background: white;
+      color: black;
+      margin: 15px;
+      padding: 15px;
+      border-radius: 12px;
+    }
 
-.score-btns button{
-  width:45px;
-}
-</style>
+    .score {
+      font-size: 30px;
+      font-weight: bold;
+    }
 
+    .controls button {
+      background: #007bff;
+    }
+
+    .wicket {
+      background: red !important;
+    }
+
+    img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h1>🏏 CricScore VIP</h1>
-  <img id="adminPic" src="https://via.placeholder.com/80" style="border-radius:50%">
-  <br><br>
-  <input type="file" onchange="uploadPic(event)">
+<header>🏏 CricScore VIP</header>
+
+<!-- ADMIN PROFILE -->
+<div class="admin">
+  <input type="file" id="dpUpload">
+  <br>
+  <img id="dp" src="" alt="Admin DP">
+  <h3 id="adminName">Touqeer Iqbal Baghoor</h3>
+  <a href="https://wa.me/923015800630" target="_blank">📱 WhatsApp</a>
 </div>
 
+<!-- MATCH CREATOR -->
+<div class="creator">
+  <h3>Create Match</h3>
+  <input id="team1" placeholder="Team 1">
+  <input id="team2" placeholder="Team 2">
+
+  <input id="players1" placeholder="Team1 Players (comma)">
+  <input id="players2" placeholder="Team2 Players (comma)">
+
+  <button onclick="createMatch()">Create Match</button>
+</div>
+
+<!-- MATCHES -->
 <div id="matches"></div>
-
-<div class="card">
-<h3>Admin Panel</h3>
-
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
-
-<input id="batsman" placeholder="Batsman">
-<input id="bowler" placeholder="Bowler">
-<input id="keeper" placeholder="Wicket Keeper">
-
-<button class="green" onclick="addMatch()">Add Match</button>
-
-</div>
 
 <script>
 
-// STORAGE
-let matches = JSON.parse(localStorage.getItem("matches")||"[]")
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
-function save(){
- localStorage.setItem("matches",JSON.stringify(matches))
- render()
+function save() {
+  localStorage.setItem("matches", JSON.stringify(matches));
 }
 
-// ADD MATCH
-function addMatch(){
- let m={
-  id:Date.now(),
-  t1:team1.value,
-  t2:team2.value,
-  score:0,
-  wickets:0,
-  batsman:batsman.value,
-  bowler:bowler.value,
-  keeper:keeper.value
- }
- matches.push(m)
- save()
+/* ADMIN DP */
+document.getElementById("dpUpload").addEventListener("change", function(e){
+  let reader = new FileReader();
+  reader.onload = function(){
+    document.getElementById("dp").src = reader.result;
+    localStorage.setItem("dp", reader.result);
+  }
+  reader.readAsDataURL(e.target.files[0]);
+});
+
+document.getElementById("dp").src = localStorage.getItem("dp");
+
+/* CREATE MATCH */
+function createMatch() {
+  let t1 = team1.value;
+  let t2 = team2.value;
+
+  let p1 = players1.value.split(",");
+  let p2 = players2.value.split(",");
+
+  matches.push({
+    team1: t1,
+    team2: t2,
+    players1: p1,
+    players2: p2,
+    score: 0,
+    wickets: 0,
+    batsman: p1[0],
+    bowler: p2[0]
+  });
+
+  save();
+  render();
 }
 
-// SCORE UPDATE
-function run(id,r){
- let m=matches.find(x=>x.id==id)
- m.score+=r
- save()
+/* SCORE FUNCTIONS */
+function run(i, r) {
+  matches[i].score += r;
+  save();
+  render();
 }
 
-function wicket(id){
- let m=matches.find(x=>x.id==id)
- if(m.wickets<10) m.wickets++
- save()
+function wicket(i) {
+  matches[i].wickets++;
+  alert("⚡ WICKET!");
+  save();
+  render();
 }
 
-// DELETE
-function del(id){
- matches=matches.filter(x=>x.id!=id)
- save()
+function changeBatsman(i) {
+  let name = prompt("New Batsman:");
+  if(name){
+    matches[i].batsman = name;
+    save();
+    render();
+  }
 }
 
-// RENDER
-function render(){
- let html=""
+function changeBowler(i) {
+  let name = prompt("New Bowler:");
+  if(name){
+    matches[i].bowler = name;
+    save();
+    render();
+  }
+}
 
- matches.forEach(m=>{
-  html+=`
-  <div class="card">
-    <h3>${m.t1} vs ${m.t2}</h3>
-    <h2>${m.score}/${m.wickets}</h2>
+function deleteMatch(i){
+  matches.splice(i,1);
+  save();
+  render();
+}
 
-    <p><b>Batsman:</b> ${m.batsman}</p>
-    <p><b>Bowler:</b> ${m.bowler}</p>
-    <p><b>Keeper:</b> ${m.keeper}</p>
+/* RENDER UI */
+function render() {
+  let html = "";
 
-    <div class="score-btns">
-      <button onclick="run(${m.id},1)">1</button>
-      <button onclick="run(${m.id},2)">2</button>
-      <button onclick="run(${m.id},3)">3</button>
-      <button onclick="run(${m.id},4)">4</button>
-      <button onclick="run(${m.id},6)">6</button>
-      <button class="red" onclick="wicket(${m.id})">W</button>
+  matches.forEach((m,i)=>{
+    html += `
+    <div class="card">
+      <h2>${m.team1} vs ${m.team2}</h2>
+
+      <div class="score">${m.score}/${m.wickets}</div>
+
+      <p>🏏 Batsman: ${m.batsman} 
+      <button onclick="changeBatsman(${i})">Change</button></p>
+
+      <p>🎯 Bowler: ${m.bowler} 
+      <button onclick="changeBowler(${i})">Change</button></p>
+
+      <div class="controls">
+        <button onclick="run(${i},0)">0</button>
+        <button onclick="run(${i},1)">1</button>
+        <button onclick="run(${i},2)">2</button>
+        <button onclick="run(${i},3)">3</button>
+        <button onclick="run(${i},4)">4</button>
+        <button onclick="run(${i},6)">6</button>
+        <button class="wicket" onclick="wicket(${i})">W</button>
+      </div>
+
+      <button onclick="deleteMatch(${i})">❌ Delete Match</button>
+
+      <p><b>${m.team1}:</b> ${m.players1.join(", ")}</p>
+      <p><b>${m.team2}:</b> ${m.players2.join(", ")}</p>
+
+      <a href="https://wa.me/?text=${m.team1} vs ${m.team2} Score ${m.score}/${m.wickets}" target="_blank">
+      📤 Share WhatsApp</a>
+
     </div>
+    `;
+  });
 
-    <br>
-
-    <button class="blue" onclick="share('${m.t1} vs ${m.t2} ${m.score}/${m.wickets}')">
-    WhatsApp Share
-    </button>
-
-    <button class="red" onclick="del(${m.id})">Delete</button>
-
-  </div>
-  `
- })
-
- document.getElementById("matches").innerHTML=html
+  document.getElementById("matches").innerHTML = html;
 }
 
-// SHARE
-function share(text){
- window.open(`https://wa.me/?text=${encodeURIComponent(text)}`)
-}
-
-// ADMIN PIC
-function uploadPic(e){
- let file=e.target.files[0]
- let reader=new FileReader()
- reader.onload=function(){
-  localStorage.setItem("adminPic",reader.result)
-  document.getElementById("adminPic").src=reader.result
- }
- reader.readAsDataURL(file)
-}
-
-// LOAD PIC
-let pic=localStorage.getItem("adminPic")
-if(pic) document.getElementById("adminPic").src=pic
-
-render()
+render();
 
 </script>
 
