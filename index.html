@@ -1,123 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>CricScore VIP</title>
-
-<style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:linear-gradient(135deg,#002f2f,#004d40);
-  color:white;
-}
-
-.header{
-  text-align:center;
-  padding:15px;
-  background:#00332f;
-}
-
-.container{padding:15px;}
-
-.card{
-  background:#ffffff10;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-}
-
-input{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:8px;
-  border:none;
-}
-
-button{
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.create{
-  background:#00c853;
-  color:white;
-  width:100%;
-}
-
-.score-btns button{
-  width:30%;
-  margin:5px;
-  background:linear-gradient(45deg,#ff9800,#ffc107);
-  color:black;
-  font-weight:bold;
-}
-
-.wicket{
-  background:red !important;
-  color:white !important;
-}
-
-.delete{
-  background:#00c853;
-  width:100%;
-  margin-top:10px;
-}
-
-.anim{
-  text-align:center;
-  font-size:28px;
-  color:#FFD700;
-  animation:pop 0.4s;
-}
-
-@keyframes pop{
-  0%{transform:scale(0.5);}
-  100%{transform:scale(1);}
-}
-
-.player{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin:5px 0;
-}
-
-.player img{
-  width:35px;
-  height:35px;
-  border-radius:50%;
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="header">
-<h2>🏏 CricScore VIP</h2>
-<p>Admin: Touqeer Iqbal Baghoor</p>
-<a href="https://wa.me/923015800630" style="color:#00e676">📱 WhatsApp</a>
-</div>
-
-<div class="container">
-
-<div class="card">
-<h3>Create Match</h3>
-<input id="t1" placeholder="Team 1">
-<input id="t2" placeholder="Team 2">
-<input id="p1" placeholder="Team1 Players (name|wa|pic , 11 players)">
-<input id="p2" placeholder="Team2 Players (name|wa|pic , 11 players)">
-<button class="create" onclick="createMatch()">Create Match</button>
-</div>
-
-<div id="matches"></div>
-
-</div>
-
 <script>
 
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
@@ -126,17 +6,20 @@ function save(){
   localStorage.setItem("matches", JSON.stringify(matches));
 }
 
-function parsePlayers(str){
-  return str.split(",").map(p=>{
-    let [name,wa,pic]=p.split("|");
-    return {
-      name:name.trim(),
-      wa:wa||"",
-      pic:pic||"",
-      runs:0,
-      wickets:0
-    }
-  });
+// SIMPLE PLAYER CREATOR (NO BUG)
+function createPlayers(str){
+  let names = str.split(",");
+  
+  if(names.length != 11){
+    alert("Exactly 11 players likho!");
+    return null;
+  }
+
+  return names.map(n => ({
+    name: n.trim(),
+    runs: 0,
+    wickets: 0
+  }));
 }
 
 function createMatch(){
@@ -144,13 +27,10 @@ function createMatch(){
 let t1=document.getElementById("t1").value;
 let t2=document.getElementById("t2").value;
 
-let p1=parsePlayers(document.getElementById("p1").value);
-let p2=parsePlayers(document.getElementById("p2").value);
+let p1=createPlayers(document.getElementById("p1").value);
+let p2=createPlayers(document.getElementById("p2").value);
 
-if(p1.length!=11 || p2.length!=11){
-alert("11 players required");
-return;
-}
+if(!p1 || !p2) return;
 
 matches.push({
 t1,t2,
@@ -166,8 +46,10 @@ save();
 render();
 }
 
+// RUN ADD
 function addRun(i,run){
 let m=matches[i];
+
 m.score+=run;
 m.p1[m.striker].runs += run;
 
@@ -179,11 +61,18 @@ render();
 setTimeout(()=>{
 m.anim="";
 render();
-},1500);
+},1000);
 }
 
+// WICKET FIXED
 function wicket(i){
 let m=matches[i];
+
+if(m.wickets >= 10){
+alert("All out!");
+return;
+}
+
 m.wickets++;
 m.p2[m.bowler].wickets++;
 
@@ -195,17 +84,17 @@ render();
 setTimeout(()=>{
 m.anim="";
 render();
-},1500);
+},1000);
 }
 
 function changeStriker(i,val){
-matches[i].striker=val;
+matches[i].striker=parseInt(val);
 save();
 render();
 }
 
 function changeBowler(i,val){
-matches[i].bowler=val;
+matches[i].bowler=parseInt(val);
 save();
 render();
 }
@@ -216,6 +105,7 @@ save();
 render();
 }
 
+// UI RENDER FIXED
 function render(){
 let html="";
 
@@ -223,6 +113,7 @@ matches.forEach((m,i)=>{
 
 html+=`
 <div class="card">
+
 <h3>${m.t1} vs ${m.t2}</h3>
 <h2>${m.score}/${m.wickets}</h2>
 
@@ -230,11 +121,11 @@ html+=`
 <p>🎯 ${m.p2[m.bowler].name} (${m.p2[m.bowler].wickets})</p>
 
 <select onchange="changeStriker(${i},this.value)">
-${m.p1.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+${m.p1.map((p,idx)=>`<option value="${idx}" ${idx==m.striker?"selected":""}>${p.name}</option>`).join("")}
 </select>
 
 <select onchange="changeBowler(${i},this.value)">
-${m.p2.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+${m.p2.map((p,idx)=>`<option value="${idx}" ${idx==m.bowler?"selected":""}>${p.name}</option>`).join("")}
 </select>
 
 <div class="score-btns">
@@ -248,33 +139,21 @@ ${m.p2.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
 
 <div class="anim">${m.anim}</div>
 
-<h4>Team Players</h4>
+<h4>Players</h4>
 
+<b>${m.t1}</b>
 ${m.p1.map(p=>`
-<div class="player">
-<img src="${p.pic}">
-<div>
-<b>${p.name}</b><br>
-📱 ${p.wa}<br>
-Runs: ${p.runs}
-</div>
-</div>
+<div>${p.name} - Runs: ${p.runs}</div>
 `).join("")}
 
 <hr>
 
+<b>${m.t2}</b>
 ${m.p2.map(p=>`
-<div class="player">
-<img src="${p.pic}">
-<div>
-<b>${p.name}</b><br>
-📱 ${p.wa}<br>
-Wickets: ${p.wickets}
-</div>
-</div>
+<div>${p.name} - Wickets: ${p.wickets}</div>
 `).join("")}
 
-<button class="delete" onclick="del(${i})">Delete Match</button>
+<button class="delete" onclick="del(${i})">Delete</button>
 
 </div>
 `;
@@ -287,6 +166,3 @@ document.getElementById("matches").innerHTML=html;
 render();
 
 </script>
-
-</body>
-</html>
