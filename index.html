@@ -1,235 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CricScore PRO AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Cricket Step 1</title>
 
 <style>
-body{background:#004d40;color:white;font-family:Arial;padding:10px;}
-.card{background:#065f46;padding:15px;border-radius:10px;margin-bottom:15px;}
-input,select{width:100%;padding:8px;margin:4px 0;border-radius:6px;border:none;}
-button{padding:10px;margin:4px;border:none;border-radius:6px;}
-.green{background:#22c55e;}
-.red{background:#ef4444;color:white;}
-.orange{background:#f59e0b;}
-#anim{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:40px;display:none;}
-.player{padding:5px;border-bottom:1px solid #ccc;cursor:pointer;}
+body{font-family:sans-serif;background:#065f46;color:white;padding:20px}
+.card{background:#047857;padding:15px;border-radius:10px;margin-bottom:15px}
+button{padding:10px;margin:5px;border:none;border-radius:6px}
+.orange{background:#f59e0b}
+.red{background:#ef4444;color:white}
+.green{background:#22c55e}
 </style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
+
 </head>
 
 <body>
 
-<h2 onclick="openAdmin()">🏏 CricScore PRO</h2>
-
-<div id="admin" class="card" style="display:none">
-<input id="pass" placeholder="Password">
-<button onclick="login()">Login</button>
-</div>
-
-<div id="main" style="display:none">
+<h2>🏏 Live Cricket (Step 1)</h2>
 
 <div class="card">
-<h3 id="adminNameDisplay"></h3>
+<button class="green" onclick="startMatch()">Start Match</button>
 </div>
 
 <div class="card">
-<input id="t1" placeholder="Team 1">
-<input id="t2" placeholder="Team 2">
+<h1 id="score">0 / 0</h1>
 
-<div id="team1"></div>
-<button onclick="addPlayer('team1')">+ Player</button>
-
-<div id="team2"></div>
-<button onclick="addPlayer('team2')">+ Player</button>
-
-<button class="green" onclick="createMatch()">Start Match</button>
+<button class="orange" onclick="run(1)">+1</button>
+<button class="orange" onclick="run(4)">+4</button>
+<button class="orange" onclick="run(6)">+6</button>
+<button class="red" onclick="wicket()">Wicket</button>
 </div>
-
-<div id="matchBox" class="card"></div>
-
-</div>
-
-<div id="anim"></div>
 
 <script>
 
 let match=null;
-let PASSWORD="5800";
-
-/* ADMIN */
-function openAdmin(){admin.style.display="block";}
-function login(){
-if(pass.value==PASSWORD){
-admin.style.display="none";
-main.style.display="block";
-}else alert("Wrong");
-}
-
-/* ADD PLAYER */
-function addPlayer(team){
-let d=document.createElement("div");
-d.innerHTML=`
-<input placeholder="Name">
-<input placeholder="WhatsApp">
-<input type="file">
-`;
-document.getElementById(team).appendChild(d);
-}
 
 /* CREATE MATCH */
-function createMatch(){
-
-let t1p=[], t2p=[];
-
-document.querySelectorAll("#team1 div").forEach(p=>{
-t1p.push({
-name:p.children[0].value,
-wp:p.children[1].value,
-runs:0,balls:0,wickets:0,pic:""
-});
-});
-
-document.querySelectorAll("#team2 div").forEach(p=>{
-t2p.push({
-name:p.children[0].value,
-wp:p.children[1].value,
-runs:0,balls:0,wickets:0,pic:""
-});
-});
-
-match={
-t1:t1.value,
-t2:t2.value,
-team1:t1p,
-team2:t2p,
-innings:1,
-score1:0,w1:0,
-score2:0,w2:0,
-target:0,
-striker:0,non:1,bowler:0
+function startMatch(){
+let data={
+score:0,
+wickets:0
 };
-
-render();
+db.ref("match").set(data);
 }
 
-/* RENDER */
-function render(){
-
-let score = match.innings==1 ? 
-match.score1+"/"+match.w1 : 
-match.score2+"/"+match.w2;
-
-let targetText = match.innings==2 ? 
-`Target: ${match.target}` : "";
-
-let bat = match.innings==1 ? match.team1 : match.team2;
-
-matchBox.innerHTML=`
-<h3>${match.t1} vs ${match.t2}</h3>
-<h2>${score}</h2>
-${targetText}
-
-<select onchange="match.striker=this.value">
-${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
-</select>
-
-<select onchange="match.non=this.value">
-${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
-</select>
-
-<button onclick="swap()">Swap Strike</button>
-
-<br>
-
-<button class="orange" onclick="run(1)">1</button>
-<button class="orange" onclick="run(2)">2</button>
-<button class="orange" onclick="run(4)">4</button>
-<button class="orange" onclick="run(6)">6</button>
-<button class="red" onclick="wicket()">W</button>
-
-<h4>Players</h4>
-
-${match.team1.map((p,i)=>`
-<div class="player" onclick="profile(p)">
-${p.name} (${p.runs}) SR:${calcSR(p)}
-</div>`).join("")}
-
-<hr>
-
-${match.team2.map((p,i)=>`
-<div class="player" onclick="profile(p)">
-${p.name} W:${p.wickets}
-</div>`).join("")}
-`;
+/* LISTENER (LIVE SYNC) */
+db.ref("match").on("value",snap=>{
+match=snap.val();
+if(match){
+document.getElementById("score").innerText=
+match.score+" / "+match.wickets;
 }
+});
 
 /* RUN */
 function run(r){
-
-let team = match.innings==1 ? match.team1 : match.team2;
-
-team[match.striker].runs+=r;
-team[match.striker].balls++;
-
-if(match.innings==1) match.score1+=r;
-else match.score2+=r;
-
-checkWin();
-
-render();
+if(!match) return;
+match.score+=r;
+db.ref("match").update({score:match.score});
 }
 
 /* WICKET */
 function wicket(){
-if(match.innings==1){
-match.w1++;
-if(match.w1==10){
-match.innings=2;
-match.target=match.score1+1;
-}
-}else{
-match.w2++;
-checkWin();
-}
-render();
-}
-
-/* CHECK WIN */
-function checkWin(){
-if(match.innings==2){
-if(match.score2>=match.target){
-alert(match.t2+" WON 🎉");
-}
-}
-}
-
-/* SR */
-function calcSR(p){
-if(p.balls==0) return 0;
-return ((p.runs/p.balls)*100).toFixed(1);
-}
-
-/* PROFILE */
-function profile(p){
-alert(`${p.name}
-Runs:${p.runs}
-SR:${calcSR(p)}
-WhatsApp:${p.wp}`);
-window.open("https://wa.me/"+p.wp);
-}
-
-/* SWAP */
-function swap(){
-let temp=match.striker;
-match.striker=match.non;
-match.non=temp;
-}
-
-/* ANIM */
-function anim(t){
-anim.innerText=t;
-anim.style.display="block";
-setTimeout(()=>anim.style.display="none",1000);
+if(!match) return;
+match.wickets+=1;
+db.ref("match").update({wickets:match.wickets});
 }
 
 </script>
