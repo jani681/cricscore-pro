@@ -5,26 +5,23 @@
 <title>CricScore VIP</title>
 
 <style>
-body {
+body{
   margin:0;
-  font-family: Arial;
-  background: linear-gradient(135deg,#003d3d,#001a1a);
+  font-family:Arial;
+  background:linear-gradient(135deg,#003d3d,#001a1a);
   color:white;
 }
 
-.header {
-  text-align:center;
-  padding:20px;
-}
+.header{text-align:center;padding:15px}
 
-.card {
+.card{
   background:#ffffff10;
   margin:15px;
   padding:15px;
   border-radius:15px;
 }
 
-input, button, select {
+input,select,button{
   width:100%;
   padding:10px;
   margin:5px 0;
@@ -32,51 +29,46 @@ input, button, select {
   border:none;
 }
 
-button {
-  background:#00c853;
-  color:white;
-  font-weight:bold;
-}
+button{background:#00c853;color:white;font-weight:bold}
 
 .score-btns button{
   width:30%;
   margin:5px;
+  background:orange;
 }
 
-.wicket{
-  background:red;
+.wicket{background:red}
+
+.anim{
+  text-align:center;
+  font-size:30px;
+  margin-top:10px;
+  animation:pop 0.5s;
 }
 
-.highlight{
-  color:yellow;
-  font-weight:bold;
+@keyframes pop{
+  0%{transform:scale(0)}
+  100%{transform:scale(1)}
 }
-
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  <h1>🏏 CricScore VIP</h1>
-
-  <input type="file" id="dpUpload">
-  <img id="adminDP" width="80" style="border-radius:50%"><br>
-
-  <h3>Touqeer Iqbal Baghoor</h3>
-  <a href="https://wa.me/923015800630" target="_blank">📱 WhatsApp</a>
+<h2>🏏 CricScore VIP</h2>
 </div>
 
 <div class="card">
-  <h2>Create Match</h2>
+<h3>Create Match</h3>
 
-  <input id="team1" placeholder="Team 1">
-  <input id="team2" placeholder="Team 2">
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
 
-  <input id="players1" placeholder="Team1 Players (comma)">
-  <input id="players2" placeholder="Team2 Players (comma)">
+<input id="players1" placeholder="Team1 Players (11 names comma)">
+<input id="players2" placeholder="Team2 Players (11 names comma)">
 
-  <button onclick="createMatch()">Create Match</button>
+<button onclick="createMatch()">Create Match</button>
 </div>
 
 <div id="matches"></div>
@@ -90,28 +82,31 @@ function save(){
 }
 
 function createMatch(){
-  let t1 = document.getElementById("team1").value;
-  let t2 = document.getElementById("team2").value;
+  let t1 = team1.value;
+  let t2 = team2.value;
 
-  let p1 = document.getElementById("players1").value.split(",");
-  let p2 = document.getElementById("players2").value.split(",");
+  let p1 = players1.value.split(",");
+  let p2 = players2.value.split(",");
 
-  if(!t1 || !t2) return alert("Fill teams");
+  if(p1.length < 2 || p2.length < 2){
+    alert("Min 2 players zaroor daalo");
+    return;
+  }
 
-  let match = {
+  matches.push({
     team1:t1,
     team2:t2,
-    players1:p1,
-    players2:p2,
+    p1:p1,
+    p2:p2,
     score:0,
     wickets:0,
     balls:0,
     striker:p1[0],
     nonStriker:p1[1],
-    bowler:p2[0]
-  };
+    bowler:p2[0],
+    anim:""
+  });
 
-  matches.push(match);
   save();
   render();
 }
@@ -121,13 +116,15 @@ function addRun(i,run){
   m.score += run;
   m.balls++;
 
-  if(run%2!==0){
-    let temp = m.striker;
-    m.striker = m.nonStriker;
-    m.nonStriker = temp;
+  if(run===4) m.anim="🔥 FOUR!";
+  if(run===6) m.anim="💥 SIX!";
+  if(run===1||run===3){
+    let t=m.striker;
+    m.striker=m.nonStriker;
+    m.nonStriker=t;
   }
 
-  checkOver(m);
+  overCheck(m);
   save();
   render();
 }
@@ -136,45 +133,53 @@ function wicket(i){
   let m = matches[i];
   m.wickets++;
   m.balls++;
+  m.anim="❌ WICKET!";
 
-  m.striker = "OUT";
+  m.striker="OUT";
 
-  checkOver(m);
+  overCheck(m);
   save();
   render();
 }
 
-function checkOver(m){
+function overCheck(m){
   if(m.balls===6){
     m.balls=0;
-    let temp = m.striker;
-    m.striker = m.nonStriker;
-    m.nonStriker = temp;
+    let t=m.striker;
+    m.striker=m.nonStriker;
+    m.nonStriker=t;
   }
-}
-
-function deleteMatch(i){
-  matches.splice(i,1);
-  save();
-  render();
 }
 
 function render(){
   let html="";
 
   matches.forEach((m,i)=>{
+
+    let p1options = m.p1.map(p=>`<option>${p}</option>`).join("");
+    let p2options = m.p2.map(p=>`<option>${p}</option>`).join("");
+
     html+=`
     <div class="card">
       <h3>${m.team1} vs ${m.team2}</h3>
       <h2>${m.score}/${m.wickets}</h2>
       <p>Over: ${Math.floor(m.balls/6)}.${m.balls}</p>
 
-      <p>Striker: <span class="highlight">${m.striker}</span></p>
-      <p>Non-Striker: ${m.nonStriker}</p>
-      <p>Bowler: ${m.bowler}</p>
+      <p>🏏 Striker: ${m.striker}</p>
+      <p>🏏 Non-Striker: ${m.nonStriker}</p>
+      <p>🎯 Bowler: ${m.bowler}</p>
+
+      <select onchange="setStriker(${i},this.value)">
+        <option>Select Striker</option>
+        ${p1options}
+      </select>
+
+      <select onchange="setBowler(${i},this.value)">
+        <option>Select Bowler</option>
+        ${p2options}
+      </select>
 
       <div class="score-btns">
-        <button onclick="addRun(${i},0)">0</button>
         <button onclick="addRun(${i},1)">1</button>
         <button onclick="addRun(${i},2)">2</button>
         <button onclick="addRun(${i},3)">3</button>
@@ -183,7 +188,9 @@ function render(){
         <button class="wicket" onclick="wicket(${i})">Wicket</button>
       </div>
 
-      <button onclick="deleteMatch(${i})">Delete Match</button>
+      <div class="anim">${m.anim}</div>
+
+      <button onclick="deleteMatch(${i})">Delete</button>
     </div>
     `;
   });
@@ -191,19 +198,23 @@ function render(){
   document.getElementById("matches").innerHTML = html;
 }
 
-document.getElementById("dpUpload").addEventListener("change", function(){
-  let file = this.files[0];
-  let reader = new FileReader();
+function setStriker(i,val){
+  matches[i].striker = val;
+  save();
+  render();
+}
 
-  reader.onload = function(){
-    document.getElementById("adminDP").src = reader.result;
-    localStorage.setItem("dp", reader.result);
-  }
+function setBowler(i,val){
+  matches[i].bowler = val;
+  save();
+  render();
+}
 
-  reader.readAsDataURL(file);
-});
-
-document.getElementById("adminDP").src = localStorage.getItem("dp");
+function deleteMatch(i){
+  matches.splice(i,1);
+  save();
+  render();
+}
 
 render();
 
