@@ -2,70 +2,50 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CricScore VIP PRO</title>
+<title>CricScore PRO AI</title>
 
 <style>
-body{font-family:Arial;background:#004d40;color:#fff;padding:10px;}
+body{background:#004d40;color:white;font-family:Arial;padding:10px;}
 .card{background:#065f46;padding:15px;border-radius:10px;margin-bottom:15px;}
-input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:6px;}
-button{padding:10px;margin:5px;border:none;border-radius:6px;cursor:pointer;}
+input,select{width:100%;padding:8px;margin:4px 0;border-radius:6px;border:none;}
+button{padding:10px;margin:4px;border:none;border-radius:6px;}
 .green{background:#22c55e;}
 .red{background:#ef4444;color:white;}
 .orange{background:#f59e0b;}
-.playerBox{border:1px solid #ccc;padding:5px;margin:5px 0;border-radius:6px;}
-img{width:40px;height:40px;border-radius:50%;}
-#anim{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
-font-size:40px;display:none;}
+#anim{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:40px;display:none;}
+.player{padding:5px;border-bottom:1px solid #ccc;cursor:pointer;}
 </style>
 </head>
 
 <body>
 
-<h2 ondblclick="secretOpen()">🏏 CricScore VIP PRO</h2>
+<h2 onclick="openAdmin()">🏏 CricScore PRO</h2>
 
-<!-- LOGIN -->
-<div id="login" class="card">
-<input type="password" id="pass" placeholder="Enter Password">
-<button class="green" onclick="login()">Login</button>
+<div id="admin" class="card" style="display:none">
+<input id="pass" placeholder="Password">
+<button onclick="login()">Login</button>
 </div>
 
-<!-- MAIN -->
 <div id="main" style="display:none">
 
-<!-- ADMIN -->
 <div class="card">
-<h3>Admin</h3>
-<input id="adminName" placeholder="Name">
-<input type="file" id="adminPic">
-<input id="adminWp" placeholder="WhatsApp">
-<button class="green" onclick="saveAdmin()">Save</button>
-
-<input id="newPass" placeholder="Change Password">
-<button onclick="changePass()">Update Password</button>
-
-<button class="red" onclick="logout()">Logout</button>
-
-<div id="adminShow"></div>
+<h3 id="adminNameDisplay"></h3>
 </div>
 
-<!-- CREATE MATCH -->
 <div class="card">
-<h3>Create Match</h3>
 <input id="t1" placeholder="Team 1">
 <input id="t2" placeholder="Team 2">
 
-<h4>Team 1</h4>
 <div id="team1"></div>
 <button onclick="addPlayer('team1')">+ Player</button>
 
-<h4>Team 2</h4>
 <div id="team2"></div>
 <button onclick="addPlayer('team2')">+ Player</button>
 
-<button class="green" onclick="createMatch()">Create Match</button>
+<button class="green" onclick="createMatch()">Start Match</button>
 </div>
 
-<div class="card" id="matchBox"></div>
+<div id="matchBox" class="card"></div>
 
 </div>
 
@@ -74,230 +54,182 @@ font-size:40px;display:none;}
 <script>
 
 let match=null;
-let PASSWORD = localStorage.getItem("pass") || "5800";
+let PASSWORD="5800";
 
-/* LOGIN */
+/* ADMIN */
+function openAdmin(){admin.style.display="block";}
 function login(){
-  let val=document.getElementById("pass").value;
-  if(val==PASSWORD){
-    document.getElementById("login").style.display="none";
-    document.getElementById("main").style.display="block";
-    loadAdmin();
-    loadMatch();
-  } else alert("Wrong Password");
-}
-
-/* SECRET OPEN */
-function secretOpen(){
-  document.getElementById("login").style.display="block";
-}
-
-/* LOGOUT */
-function logout(){
-  location.reload();
-}
-
-/* CHANGE PASSWORD */
-function changePass(){
-  let p=document.getElementById("newPass").value;
-  if(p.length<3) return alert("Weak Password");
-  localStorage.setItem("pass",p);
-  PASSWORD=p;
-  alert("Password Updated");
-}
-
-/* ADMIN SAVE */
-function saveAdmin(){
-  let file=adminPic.files[0];
-  let reader=new FileReader();
-  reader.onload=function(){
-    let data={
-      name:adminName.value,
-      wp:adminWp.value,
-      pic:reader.result
-    };
-    localStorage.setItem("admin",JSON.stringify(data));
-    loadAdmin();
-  }
-  if(file) reader.readAsDataURL(file);
-}
-
-/* LOAD ADMIN */
-function loadAdmin(){
-  let a=JSON.parse(localStorage.getItem("admin"));
-  if(!a) return;
-  adminShow.innerHTML=`
-  <img src="${a.pic}">
-  <br>${a.name}
-  <br><a href="https://wa.me/${a.wp}" target="_blank">WhatsApp</a>`;
+if(pass.value==PASSWORD){
+admin.style.display="none";
+main.style.display="block";
+}else alert("Wrong");
 }
 
 /* ADD PLAYER */
 function addPlayer(team){
-  let d=document.createElement("div");
-  d.className="playerBox";
-  d.innerHTML=`
-  <input placeholder="Name">
-  <input placeholder="WhatsApp">
-  <input type="file">
-  `;
-  document.getElementById(team).appendChild(d);
-}
-
-/* GET PLAYERS */
-function getPlayers(team){
-  let arr=[];
-  document.querySelectorAll("#"+team+" .playerBox").forEach(p=>{
-    arr.push({
-      name:p.children[0].value,
-      wp:p.children[1].value,
-      runs:0,
-      wickets:0,
-      pic:""
-    });
-  });
-  return arr;
+let d=document.createElement("div");
+d.innerHTML=`
+<input placeholder="Name">
+<input placeholder="WhatsApp">
+<input type="file">
+`;
+document.getElementById(team).appendChild(d);
 }
 
 /* CREATE MATCH */
 function createMatch(){
-  match={
-    t1:t1.value,
-    t2:t2.value,
-    team1:getPlayers("team1"),
-    team2:getPlayers("team2"),
-    innings:1,
-    score1:0,wickets1:0,
-    score2:0,wickets2:0,
-    striker:0,bowler:0
-  };
-  save();
-  render();
-}
 
-/* SAVE */
-function save(){
-  localStorage.setItem("match",JSON.stringify(match));
-}
+let t1p=[], t2p=[];
 
-/* LOAD */
-function loadMatch(){
-  let m=localStorage.getItem("match");
-  if(m){ match=JSON.parse(m); render(); }
+document.querySelectorAll("#team1 div").forEach(p=>{
+t1p.push({
+name:p.children[0].value,
+wp:p.children[1].value,
+runs:0,balls:0,wickets:0,pic:""
+});
+});
+
+document.querySelectorAll("#team2 div").forEach(p=>{
+t2p.push({
+name:p.children[0].value,
+wp:p.children[1].value,
+runs:0,balls:0,wickets:0,pic:""
+});
+});
+
+match={
+t1:t1.value,
+t2:t2.value,
+team1:t1p,
+team2:t2p,
+innings:1,
+score1:0,w1:0,
+score2:0,w2:0,
+target:0,
+striker:0,non:1,bowler:0
+};
+
+render();
 }
 
 /* RENDER */
 function render(){
-  if(!match) return;
 
-  let score = match.innings==1
-  ? `${match.score1}/${match.wickets1}`
-  : `${match.score2}/${match.wickets2}`;
+let score = match.innings==1 ? 
+match.score1+"/"+match.w1 : 
+match.score2+"/"+match.w2;
 
-  let bat = match.innings==1 ? match.team1 : match.team2;
-  let bowl = match.innings==1 ? match.team2 : match.team1;
+let targetText = match.innings==2 ? 
+`Target: ${match.target}` : "";
 
-  matchBox.innerHTML=`
-  <h3>${match.t1} vs ${match.t2}</h3>
-  <h2>${score}</h2>
-  <h4>Innings ${match.innings}</h4>
+let bat = match.innings==1 ? match.team1 : match.team2;
 
-  <select onchange="match.striker=this.value;save()">
-  ${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
-  </select>
+matchBox.innerHTML=`
+<h3>${match.t1} vs ${match.t2}</h3>
+<h2>${score}</h2>
+${targetText}
 
-  <select onchange="match.bowler=this.value;save()">
-  ${bowl.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
-  </select>
+<select onchange="match.striker=this.value">
+${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+</select>
 
-  <br>
+<select onchange="match.non=this.value">
+${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+</select>
 
-  <button class="orange" onclick="run(1)">1</button>
-  <button class="orange" onclick="run(2)">2</button>
-  <button class="orange" onclick="run(3)">3</button>
-  <button class="orange" onclick="run(4)">4</button>
-  <button class="orange" onclick="run(6)">6</button>
+<button onclick="swap()">Swap Strike</button>
 
-  <button class="red" onclick="wicket()">Wicket</button>
-  <button onclick="wide()">Wide</button>
-  <button onclick="nb()">No Ball</button>
+<br>
 
-  <h4>Players</h4>
+<button class="orange" onclick="run(1)">1</button>
+<button class="orange" onclick="run(2)">2</button>
+<button class="orange" onclick="run(4)">4</button>
+<button class="orange" onclick="run(6)">6</button>
+<button class="red" onclick="wicket()">W</button>
 
-  ${match.team1.map((p,i)=>`
-  <div onclick="profile(${i},1)">
-  ${p.name} - ${p.runs}
-  </div>`).join("")}
+<h4>Players</h4>
 
-  <hr>
+${match.team1.map((p,i)=>`
+<div class="player" onclick="profile(p)">
+${p.name} (${p.runs}) SR:${calcSR(p)}
+</div>`).join("")}
 
-  ${match.team2.map((p,i)=>`
-  <div onclick="profile(${i},2)">
-  ${p.name} - ${p.wickets}
-  </div>`).join("")}
-  `;
+<hr>
+
+${match.team2.map((p,i)=>`
+<div class="player" onclick="profile(p)">
+${p.name} W:${p.wickets}
+</div>`).join("")}
+`;
 }
 
 /* RUN */
 function run(r){
-  if(match.innings==1){
-    match.score1+=r;
-    match.team1[match.striker].runs+=r;
-  } else {
-    match.score2+=r;
-    match.team2[match.striker].runs+=r;
-  }
-  anim(r);
-  save();
-  render();
+
+let team = match.innings==1 ? match.team1 : match.team2;
+
+team[match.striker].runs+=r;
+team[match.striker].balls++;
+
+if(match.innings==1) match.score1+=r;
+else match.score2+=r;
+
+checkWin();
+
+render();
 }
 
 /* WICKET */
 function wicket(){
-  if(match.innings==1){
-    if(match.wickets1>=10) return alert("All Out");
-    match.wickets1++;
-    if(match.wickets1==10){ match.innings=2; alert("Innings End"); }
-  } else {
-    if(match.wickets2>=10) return alert("Match End");
-    match.wickets2++;
-  }
-  anim("WICKET");
-  save();
-  render();
+if(match.innings==1){
+match.w1++;
+if(match.w1==10){
+match.innings=2;
+match.target=match.score1+1;
+}
+}else{
+match.w2++;
+checkWin();
+}
+render();
 }
 
-/* WIDE */
-function wide(){
-  if(match.innings==1) match.score1++;
-  else match.score2++;
-  anim("WIDE");
-  save();
-  render();
+/* CHECK WIN */
+function checkWin(){
+if(match.innings==2){
+if(match.score2>=match.target){
+alert(match.t2+" WON 🎉");
+}
+}
 }
 
-/* NB */
-function nb(){
-  if(match.innings==1) match.score1++;
-  else match.score2++;
-  anim("NB");
-  save();
-  render();
+/* SR */
+function calcSR(p){
+if(p.balls==0) return 0;
+return ((p.runs/p.balls)*100).toFixed(1);
 }
 
 /* PROFILE */
-function profile(i,t){
-  let p = t==1 ? match.team1[i] : match.team2[i];
-  alert(`${p.name}\nRuns:${p.runs}\nWkts:${p.wickets}\n${p.wp}`);
-  window.open("https://wa.me/"+p.wp);
+function profile(p){
+alert(`${p.name}
+Runs:${p.runs}
+SR:${calcSR(p)}
+WhatsApp:${p.wp}`);
+window.open("https://wa.me/"+p.wp);
 }
 
-/* ANIMATION */
+/* SWAP */
+function swap(){
+let temp=match.striker;
+match.striker=match.non;
+match.non=temp;
+}
+
+/* ANIM */
 function anim(t){
-  let a=document.getElementById("anim");
-  a.innerText=t;
-  a.style.display="block";
-  setTimeout(()=>a.style.display="none",1000);
+anim.innerText=t;
+anim.style.display="block";
+setTimeout(()=>anim.style.display="none",1000);
 }
 
 </script>
