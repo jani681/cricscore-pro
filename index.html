@@ -1,228 +1,258 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>CricScore VIP PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#004d40,#00695c);
+body {
+  font-family: Arial;
+  background: linear-gradient(135deg,#003d3d,#006666);
   color:white;
+  margin:0;
+  padding:10px;
 }
-.container{padding:15px;}
-.card{
-  background:rgba(255,255,255,0.08);
+.card {
+  background:#065f46;
   padding:15px;
   border-radius:12px;
   margin-bottom:15px;
 }
-input,select{
+input,select {
   width:100%;
   padding:10px;
   margin:5px 0;
   border-radius:6px;
   border:none;
 }
-button{
+button {
   padding:10px;
   border:none;
   border-radius:6px;
-  margin-top:5px;
+  margin:5px;
   cursor:pointer;
 }
-.green{background:#00c853;color:white;}
-.orange{background:#ff9800;}
-.red{background:red;color:white;}
-
-.score{font-size:30px;font-weight:bold;}
-
-.player{
-  display:flex;
-  align-items:center;
+.green {background:#22c55e;color:black;}
+.orange {background:#f59e0b;}
+.red {background:#ef4444;color:white;}
+.playerBox{
+  border:1px solid #ccc;
+  padding:5px;
   margin:5px 0;
+  border-radius:6px;
 }
-.player img{
-  width:40px;height:40px;
-  border-radius:50%;
-  margin-right:10px;
-}
-
-/* animation */
-.animate{
+img{width:40px;height:40px;border-radius:50%;}
+#animation{
   position:fixed;
-  top:50%;
+  top:40%;
   left:50%;
   transform:translate(-50%,-50%);
-  font-size:50px;
-  font-weight:bold;
-  opacity:0;
-  animation:pop 1s;
-}
-@keyframes pop{
-  0%{opacity:0;transform:scale(0.5);}
-  50%{opacity:1;transform:scale(1.3);}
-  100%{opacity:0;}
+  font-size:40px;
+  display:none;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
 <h2>🏏 CricScore VIP PRO</h2>
+
+<!-- LOGIN -->
+<div id="login" class="card">
+<h3>Admin Login</h3>
+<input type="password" id="pass" placeholder="Enter Password">
+<button class="green" onclick="login()">Login</button>
+</div>
+
+<!-- MAIN -->
+<div id="main" style="display:none">
 
 <!-- ADMIN -->
 <div class="card">
 <h3>Admin</h3>
-<input id="adminName" placeholder="Admin Name">
+<input id="adminName" placeholder="Name">
 <input type="file" id="adminPic">
-<input id="adminPhone" placeholder="WhatsApp Number">
+<input id="adminWp" placeholder="WhatsApp">
 <button class="green" onclick="saveAdmin()">Save Admin</button>
-
-<div id="adminView"></div>
+<div id="adminShow"></div>
 </div>
 
 <!-- CREATE MATCH -->
 <div class="card">
 <h3>Create Match</h3>
+<input id="t1" placeholder="Team 1">
+<input id="t2" placeholder="Team 2">
 
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
+<h4>Team 1 Players</h4>
+<div id="team1"></div>
+<button onclick="addPlayer('team1')">+ Add Player</button>
 
-<textarea id="players1" placeholder="Team1 Players (comma separated)"></textarea>
-<textarea id="players2" placeholder="Team2 Players"></textarea>
+<h4>Team 2 Players</h4>
+<div id="team2"></div>
+<button onclick="addPlayer('team2')">+ Add Player</button>
 
 <button class="green" onclick="createMatch()">Create Match</button>
 </div>
 
 <!-- MATCH -->
-<div id="matchArea"></div>
+<div class="card" id="matchBox"></div>
 
 </div>
+
+<div id="animation"></div>
 
 <script>
 let match = null;
 
-// ADMIN SAVE
+function login(){
+  if(document.getElementById("pass").value=="5800"){
+    document.getElementById("login").style.display="none";
+    document.getElementById("main").style.display="block";
+  } else alert("Wrong Password");
+}
+
 function saveAdmin(){
-  const name = adminName.value;
-  const phone = adminPhone.value;
-  const file = adminPic.files[0];
+  let name=document.getElementById("adminName").value;
+  let wp=document.getElementById("adminWp").value;
+  let file=document.getElementById("adminPic").files[0];
 
-  if(file){
-    const reader = new FileReader();
-    reader.onload = function(){
-      const admin = {
-        name,
-        phone,
-        pic: reader.result
-      };
-      localStorage.setItem("admin",JSON.stringify(admin));
-      showAdmin();
-    }
-    reader.readAsDataURL(file);
+  let reader=new FileReader();
+  reader.onload=function(){
+    let data={name,wp,pic:reader.result};
+    localStorage.setItem("admin",JSON.stringify(data));
+    loadAdmin();
   }
+  if(file) reader.readAsDataURL(file);
 }
 
-// SHOW ADMIN
-function showAdmin(){
-  const a = JSON.parse(localStorage.getItem("admin"));
+function loadAdmin(){
+  let a=JSON.parse(localStorage.getItem("admin"));
   if(!a) return;
-  adminView.innerHTML = `
-    <img src="${a.pic}" width="80"><br>
-    ${a.name}<br>
-    <a href="https://wa.me/${a.phone}" target="_blank">WhatsApp</a>
-  `;
+  document.getElementById("adminShow").innerHTML=
+  `<img src="${a.pic}"><br>${a.name}<br>
+  <a href="https://wa.me/${a.wp}" target="_blank">WhatsApp</a>`;
 }
-showAdmin();
+loadAdmin();
 
-// CREATE MATCH
+function addPlayer(team){
+  let div=document.createElement("div");
+  div.className="playerBox";
+  div.innerHTML=`
+  <input placeholder="Name">
+  <input placeholder="WhatsApp">
+  <input type="file">
+  `;
+  document.getElementById(team).appendChild(div);
+}
+
+function getPlayers(team){
+  let arr=[];
+  document.querySelectorAll("#"+team+" .playerBox").forEach(p=>{
+    let name=p.children[0].value;
+    let wp=p.children[1].value;
+    let file=p.children[2].files[0];
+
+    let obj={name,wp,runs:0,wickets:0,pic:""};
+    if(file){
+      let reader=new FileReader();
+      reader.onload=e=>obj.pic=e.target.result;
+      reader.readAsDataURL(file);
+    }
+    arr.push(obj);
+  });
+  return arr;
+}
+
 function createMatch(){
-  const t1 = team1.value;
-  const t2 = team2.value;
+  let team1=getPlayers("team1");
+  let team2=getPlayers("team2");
 
-  if(!t1 || !t2){
-    alert("Team names required");
+  if(team1.length==0 || team2.length==0){
+    alert("Add players first");
     return;
   }
 
-  const p1 = players1.value.split(",").map(p=>({
-    name:p.trim(),
-    runs:0,
-    wickets:0
-  }));
-
-  const p2 = players2.value.split(",").map(p=>({
-    name:p.trim(),
-    runs:0,
-    wickets:0
-  }));
-
-  match = {
-    team1:t1,
-    team2:t2,
-    players1:p1,
-    players2:p2,
-    score:0,
-    wickets:0,
-    striker:p1[0]?.name,
-    nonStriker:p1[1]?.name,
-    bowler:p2[0]?.name
+  match={
+    t1:document.getElementById("t1").value,
+    t2:document.getElementById("t2").value,
+    team1,team2,
+    score:0,wickets:0,
+    striker:0,non:1,bowler:0
   };
 
   render();
 }
 
-// RENDER MATCH
 function render(){
   if(!match) return;
 
-  matchArea.innerHTML = `
-  <div class="card">
-    <h3>${match.team1} vs ${match.team2}</h3>
-    <div class="score">${match.score}/${match.wickets}</div>
+  let html=`
+  <h3>${match.t1} vs ${match.t2}</h3>
+  <h2>${match.score}/${match.wickets}</h2>
 
-    🏏 Striker: ${match.striker}<br>
-    🏏 Non-Striker: ${match.nonStriker}<br>
-    🎯 Bowler: ${match.bowler}
+  <select onchange="match.striker=this.value">
+  ${match.team1.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  </select>
 
-    <select onchange="setStriker(this.value)">
-      ${match.players1.map(p=>`<option>${p.name}</option>`)}
-    </select>
+  <select onchange="match.bowler=this.value">
+  ${match.team2.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  </select>
 
-    <select onchange="setBowler(this.value)">
-      ${match.players2.map(p=>`<option>${p.name}</option>`)}
-    </select>
+  <br>
 
-    <div>
-      <button class="orange" onclick="addRun(1)">1</button>
-      <button class="orange" onclick="addRun(2)">2</button>
-      <button class="orange" onclick="addRun(3)">3</button>
-      <button class="orange" onclick="addRun(4)">4</button>
-      <button class="orange" onclick="addRun(6)">6</button>
-      <button class="red" onclick="wicket()">W</button>
-      <button onclick="wide()">Wide</button>
-      <button onclick="noBall()">NoBall</button>
-    </div>
+  <button class="orange" onclick="run(1)">1</button>
+  <button class="orange" onclick="run(2)">2</button>
+  <button class="orange" onclick="run(3)">3</button>
+  <button class="orange" onclick="run(4)">4</button>
+  <button class="orange" onclick="run(6)">6</button>
 
-    <h4>Players</h4>
-    ${match.players1.map(p=>`
-      <div class="player">
-        ${p.name} (${p.runs})
-      </div>
-    `).join("")}
-  </div>
+  <button class="red" onclick="wicket()">Wicket</button>
+  <button onclick="wide()">Wide</button>
+  <button onclick="nb()">No Ball</button>
+
+  <h4>Players</h4>
+  ${match.team1.map(p=>`${p.name} - ${p.runs} runs`).join("<br>")}
+  <hr>
+  ${match.team2.map(p=>`${p.name} - ${p.wickets} wkts`).join("<br>")}
   `;
+
+  document.getElementById("matchBox").innerHTML=html;
 }
 
-// ACTIONS
-function addRun(r){
-  match.score += r;
-  let p = match.players1.find(x=>x.name==match.striker);
-  p.runs += r;
-  animate(r);
+function run(r){
+  match.score+=r;
+  match.team1[match.striker].runs+=r;
+  anim(r);
   render();
 }
+
+function wicket(){
+  match.wickets++;
+  match.team2[match.bowler].wickets++;
+  anim("WICKET");
+  render();
+}
+
+function wide(){
+  match.score+=1;
+  anim("WIDE");
+  render();
+}
+
+function nb(){
+  match.score+=1;
+  anim("NO BALL");
+  render();
+}
+
+function anim(text){
+  let a=document.getElementById("animation");
+  a.innerText=text;
+  a.style.display="block";
+  setTimeout(()=>a.style.display="none",1000);
+}
+</script>
+
+</body>
+</html>
