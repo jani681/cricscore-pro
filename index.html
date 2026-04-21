@@ -1,87 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CricScore Pro</title>
-
-  <style>
-    body {
-      font-family: Arial;
-      background: #0b1e2d;
-      color: white;
-      padding: 20px;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    .match {
-      background: #132f45;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-    }
-  </style>
 </head>
-
 <body>
 
-  <h1>CricScore Pro</h1>
+<h2>CricScore Pro</h2>
+<div id="matches">Loading...</div>
 
-  <div id="matches"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
+    authDomain: "cricscore-pro-a0b22.firebaseapp.com",
+    projectId: "cricscore-pro-a0b22",
+    storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
+    messagingSenderId: "658688899479",
+    appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
-      authDomain: "cricscore-pro-a0b22.firebaseapp.com",
-      projectId: "cricscore-pro-a0b22",
-      storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
-      messagingSenderId: "658688899479",
-      appId: "1:658688899479:web:ddd1ec1337f50b62012cd2",
-      measurementId: "G-GE58GVEEZ3"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  async function loadMatches() {
+    const querySnapshot = await getDocs(collection(db, "matches"));
+    let html = "";
 
-    const container = document.getElementById("matches");
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      html += `
+        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
+          <h3>${data.team1} vs ${data.team2}</h3>
+          <p>Score: ${data.score}</p>
+          <p>Status: ${data.status}</p>
+        </div>
+      `;
+    });
 
-    async function loadMatches() {
-      container.innerHTML = "Loading...";
+    document.getElementById("matches").innerHTML = html;
+  }
 
-      try {
-        const querySnapshot = await getDocs(collection(db, "matches"));
-
-        container.innerHTML = "";
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-
-          const div = document.createElement("div");
-          div.className = "match";
-
-          div.innerHTML = `
-            <h3>${data.team1} vs ${data.team2}</h3>
-            <p>${data.score || "No score yet"}</p>
-            <small>${data.status || ""}</small>
-          `;
-
-          container.appendChild(div);
-        });
-
-      } catch (error) {
-        container.innerHTML = "Error loading data";
-        console.error(error);
-      }
-    }
-
-    loadMatches();
-  </script>
+  loadMatches();
+</script>
 
 </body>
 </html>
