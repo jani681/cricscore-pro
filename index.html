@@ -1,137 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CricScore Ultimate</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>CricScore VIP</title>
 
-  <style>
-    body { margin:0; font-family:sans-serif; background:#0b1e26; color:white; }
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#031d22;
+  color:#fff;
+}
 
-    .header { background:#fff; color:#000; padding:12px; text-align:center; font-weight:bold; }
+.header{
+  text-align:center;
+  padding:20px;
+}
 
-    .admin-box { text-align:center; margin:10px; }
-    .admin-img { width:70px; border-radius:50%; }
+.card{
+  background:#fff;
+  color:#000;
+  margin:10px;
+  padding:15px;
+  border-radius:12px;
+}
 
-    .container { padding:10px; }
+button{
+  padding:10px;
+  margin:3px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
 
-    .card {
-      background:white; color:black;
-      border-radius:10px; padding:12px;
-      margin-bottom:10px; position:relative;
-    }
+.green{background:#00c853;color:#fff;}
+.red{background:#d50000;color:#fff;}
+.blue{background:#2962ff;color:#fff;}
 
-    .score { font-size:22px; font-weight:bold; }
-    .live { color:red; }
+input{
+  width:95%;
+  padding:10px;
+  margin:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
 
-    .six { position:absolute; top:5px; right:5px; color:green; font-weight:bold; }
-    .wicket { color:red; font-weight:bold; }
+.score-btns button{
+  width:45px;
+}
+</style>
 
-    .admin { background:#f5f5f5; color:black; padding:10px; margin:10px; border-radius:10px; }
-
-    input,button { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none; }
-    button { background:#00c853; color:white; font-weight:bold; }
-  </style>
 </head>
 
 <body>
 
-<div class="header">🏏 CricScore Ultimate</div>
-
-<div class="admin-box">
-  <img class="admin-img" src="https://i.imgur.com/6VBx3io.png">
-  <h3>Touqeer Iqbal Baghoor</h3>
-  <a target="_blank" href="https://wa.me/923015800630">📱 WhatsApp</a>
+<div class="header">
+  <h1>🏏 CricScore VIP</h1>
+  <img id="adminPic" src="https://via.placeholder.com/80" style="border-radius:50%">
+  <br><br>
+  <input type="file" onchange="uploadPic(event)">
 </div>
 
-<div class="container" id="app">Loading...</div>
+<div id="matches"></div>
 
-<div class="admin">
-  <h3>Admin Panel</h3>
-  <input id="team1" placeholder="Team 1">
-  <input id="team2" placeholder="Team 2">
-  <input id="score" placeholder="Score (120/3)">
-  <input id="status" placeholder="Status">
-  <input id="event" placeholder="Event (six/wicket)">
-  <button onclick="addOnline()">🌐 Add Online</button>
-  <button onclick="addLocal()">📱 Add Local</button>
+<div class="card">
+<h3>Admin Panel</h3>
+
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
+
+<input id="batsman" placeholder="Batsman">
+<input id="bowler" placeholder="Bowler">
+<input id="keeper" placeholder="Wicket Keeper">
+
+<button class="green" onclick="addMatch()">Add Match</button>
+
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
-  authDomain: "cricscore-pro-a0b22.firebaseapp.com",
-  projectId: "cricscore-pro-a0b22",
-  storageBucket: "cricscore-pro-a0b22.appspot.com",
-  messagingSenderId: "658688899479",
-  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
-};
+// STORAGE
+let matches = JSON.parse(localStorage.getItem("matches")||"[]")
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let localMatches = JSON.parse(localStorage.getItem("localMatches")) || [];
-const appDiv = document.getElementById("app");
-
-function render(matches){
-  appDiv.innerHTML = "";
-
-  matches.forEach(m=>{
-    appDiv.innerHTML += `
-      <div class="card">
-        ${m.event=="six" ? '<div class="six">🔥 SIX</div>' : ''}
-        <b>${m.team1} vs ${m.team2}</b>
-        <p class="score">${m.score}</p>
-        <p class="${m.status=='live'?'live':''}">${m.status}</p>
-        ${m.event=="wicket" ? '<p class="wicket">⚡ WICKET</p>' : ''}
-
-        <a target="_blank" href="https://wa.me/?text=${m.team1} vs ${m.team2} Score ${m.score}">
-        Share WhatsApp
-        </a>
-      </div>
-    `;
-  });
-
-  if(matches.length===0){
-    appDiv.innerHTML="No matches";
-  }
+function save(){
+ localStorage.setItem("matches",JSON.stringify(matches))
+ render()
 }
 
-// 🔴 Firebase live
-onSnapshot(collection(db,"matches"),snap=>{
-  let online=[];
-  snap.forEach(d=>online.push(d.data()));
-  render([...online,...localMatches]);
-});
+// ADD MATCH
+function addMatch(){
+ let m={
+  id:Date.now(),
+  t1:team1.value,
+  t2:team2.value,
+  score:0,
+  wickets:0,
+  batsman:batsman.value,
+  bowler:bowler.value,
+  keeper:keeper.value
+ }
+ matches.push(m)
+ save()
+}
 
-// 🌐 online add
-window.addOnline = async ()=>{
-  await setDoc(doc(db,"matches",team1.value+team2.value),{
-    team1:team1.value,
-    team2:team2.value,
-    score:score.value,
-    status:status.value,
-    event:event.value
-  });
-};
+// SCORE UPDATE
+function run(id,r){
+ let m=matches.find(x=>x.id==id)
+ m.score+=r
+ save()
+}
 
-// 📱 local add
-window.addLocal = ()=>{
-  let m={
-    team1:team1.value,
-    team2:team2.value,
-    score:score.value,
-    status:status.value,
-    event:event.value
-  };
+function wicket(id){
+ let m=matches.find(x=>x.id==id)
+ if(m.wickets<10) m.wickets++
+ save()
+}
 
-  localMatches.push(m);
-  localStorage.setItem("localMatches",JSON.stringify(localMatches));
+// DELETE
+function del(id){
+ matches=matches.filter(x=>x.id!=id)
+ save()
+}
 
-  render(localMatches);
-};
+// RENDER
+function render(){
+ let html=""
+
+ matches.forEach(m=>{
+  html+=`
+  <div class="card">
+    <h3>${m.t1} vs ${m.t2}</h3>
+    <h2>${m.score}/${m.wickets}</h2>
+
+    <p><b>Batsman:</b> ${m.batsman}</p>
+    <p><b>Bowler:</b> ${m.bowler}</p>
+    <p><b>Keeper:</b> ${m.keeper}</p>
+
+    <div class="score-btns">
+      <button onclick="run(${m.id},1)">1</button>
+      <button onclick="run(${m.id},2)">2</button>
+      <button onclick="run(${m.id},3)">3</button>
+      <button onclick="run(${m.id},4)">4</button>
+      <button onclick="run(${m.id},6)">6</button>
+      <button class="red" onclick="wicket(${m.id})">W</button>
+    </div>
+
+    <br>
+
+    <button class="blue" onclick="share('${m.t1} vs ${m.t2} ${m.score}/${m.wickets}')">
+    WhatsApp Share
+    </button>
+
+    <button class="red" onclick="del(${m.id})">Delete</button>
+
+  </div>
+  `
+ })
+
+ document.getElementById("matches").innerHTML=html
+}
+
+// SHARE
+function share(text){
+ window.open(`https://wa.me/?text=${encodeURIComponent(text)}`)
+}
+
+// ADMIN PIC
+function uploadPic(e){
+ let file=e.target.files[0]
+ let reader=new FileReader()
+ reader.onload=function(){
+  localStorage.setItem("adminPic",reader.result)
+  document.getElementById("adminPic").src=reader.result
+ }
+ reader.readAsDataURL(file)
+}
+
+// LOAD PIC
+let pic=localStorage.getItem("adminPic")
+if(pic) document.getElementById("adminPic").src=pic
+
+render()
+
 </script>
 
 </body>
