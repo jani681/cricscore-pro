@@ -8,38 +8,88 @@
     body {
       margin: 0;
       font-family: Arial;
-      background: #062b3d;
+      background: #062b36;
       color: white;
     }
 
-    header {
-      background: #041f2e;
+    .header {
+      background: #041f27;
       padding: 15px;
       text-align: center;
       font-size: 22px;
       font-weight: bold;
     }
 
+    .container {
+      padding: 15px;
+    }
+
     .card {
-      background: #0a3a52;
-      margin: 20px;
-      padding: 20px;
-      border-radius: 10px;
+      background: #0b3a47;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    .team {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .live {
+      color: #00ff9d;
+      font-weight: bold;
+    }
+
+    .local {
+      color: #ffd700;
+      font-size: 12px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      background: #00ff9d;
+      font-weight: bold;
+    }
+
+    .admin {
+      background: #041f27;
+      padding: 15px;
+      margin: 15px;
+      border-radius: 12px;
     }
   </style>
 </head>
 
 <body>
 
-<header>🏏 CricScore Pro</header>
+<div class="header">🏏 CricScore Pro</div>
 
-<div id="app">
-  <p style="text-align:center;">Loading...</p>
+<div class="container" id="app">Loading...</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin">
+  <h3>Admin Panel</h3>
+  <input id="key" placeholder="Admin Key">
+  <input id="team1" placeholder="Team 1">
+  <input id="team2" placeholder="Team 2">
+  <input id="score" placeholder="Score">
+  <input id="status" placeholder="Status (live/finished)">
+  
+  <button onclick="addOnline()">🌐 Add Online Match</button>
+  <button onclick="addLocal()">📱 Add Local Match</button>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
@@ -55,36 +105,80 @@
 
   const appDiv = document.getElementById("app");
 
-  async function loadData() {
-    try {
-      const querySnapshot = await getDocs(collection(db, "matches"));
+  let localMatches = JSON.parse(localStorage.getItem("localMatches")) || [];
 
-      let html = "";
+  // 🔴 RENDER FUNCTION (MERGE BOTH)
+  function render(allMatches) {
+    appDiv.innerHTML = "";
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        html += `
-          <div class="card">
-            <h2>${data.team1} vs ${data.team2}</h2>
-            <p>Score: ${data.score}</p>
-            <p>Status: ${data.status}</p>
-          </div>
-        `;
-      });
-
-      if (html === "") {
-        html = "<p style='text-align:center;'>No matches found</p>";
-      }
-
-      appDiv.innerHTML = html;
-
-    } catch (error) {
-      appDiv.innerHTML = "<p style='text-align:center;color:red;'>Error loading data</p>";
-      console.error(error);
+    if (allMatches.length === 0) {
+      appDiv.innerHTML = "No matches found";
+      return;
     }
+
+    allMatches.forEach((data) => {
+      appDiv.innerHTML += `
+        <div class="card">
+          <div class="team">${data.team1} vs ${data.team2}</div>
+          <p>Score: ${data.score}</p>
+          <p class="live">Status: ${data.status}</p>
+          ${data.local ? "<p class='local'>📱 Local Match</p>" : ""}
+        </div>
+      `;
+    });
   }
 
-  loadData();
+  // 🔴 FIREBASE LIVE
+  onSnapshot(collection(db, "matches"), (snapshot) => {
+    let onlineMatches = [];
+
+    snapshot.forEach((docSnap) => {
+      onlineMatches.push(docSnap.data());
+    });
+
+    // merge online + local
+    render([...onlineMatches, ...localMatches]);
+  });
+
+  // 🌐 ADD ONLINE (FIREBASE)
+  window.addOnline = async () => {
+    const key = document.getElementById("key").value;
+    if (key !== "12345") return alert("Wrong Admin Key");
+
+    const team1 = document.getElementById("team1").value;
+    const team2 = document.getElementById("team2").value;
+    const score = document.getElementById("score").value;
+    const status = document.getElementById("status").value;
+
+    const id = team1 + "-" + team2;
+
+    await setDoc(doc(db, "matches", id), {
+      team1, team2, score, status
+    });
+
+    alert("Online Match Added ✅");
+  };
+
+  // 📱 ADD LOCAL (OFFLINE)
+  window.addLocal = () => {
+    const key = document.getElementById("key").value;
+    if (key !== "12345") return alert("Wrong Admin Key");
+
+    const team1 = document.getElementById("team1").value;
+    const team2 = document.getElementById("team2").value;
+    const score = document.getElementById("score").value;
+    const status = document.getElementById("status").value;
+
+    const newMatch = {
+      team1, team2, score, status, local: true
+    };
+
+    localMatches.push(newMatch);
+    localStorage.setItem("localMatches", JSON.stringify(localMatches));
+
+    render(localMatches);
+    alert("Local Match Saved 📱");
+  };
 </script>
 
 </body>
