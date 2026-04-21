@@ -1,80 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>CricScore VIP</title>
 
 <style>
 body {
+  margin:0;
   font-family: Arial;
-  background: linear-gradient(135deg,#021c1e,#004445);
-  color: white;
-  text-align: center;
+  background: linear-gradient(135deg,#003d3d,#001a1a);
+  color:white;
 }
 
-h1 { margin-top:20px; }
-
-.container {
-  width: 95%;
-  margin: auto;
+.header {
+  text-align:center;
+  padding:20px;
 }
 
 .card {
-  background: white;
-  color: black;
-  padding: 15px;
-  border-radius: 15px;
-  margin: 15px 0;
+  background:#ffffff10;
+  margin:15px;
+  padding:15px;
+  border-radius:15px;
 }
 
-input, select {
-  width: 90%;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 10px;
-  border: none;
+input, button, select {
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:8px;
+  border:none;
 }
 
 button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  margin: 5px;
-  background: green;
-  color: white;
-  font-weight: bold;
+  background:#00c853;
+  color:white;
+  font-weight:bold;
 }
 
-.score-btn {
-  background: orange;
+.score-btns button{
+  width:30%;
+  margin:5px;
 }
 
-.wicket {
-  background: red;
+.wicket{
+  background:red;
 }
+
+.highlight{
+  color:yellow;
+  font-weight:bold;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>🏏 CricScore VIP</h1>
+<div class="header">
+  <h1>🏏 CricScore VIP</h1>
 
-<div class="container">
+  <input type="file" id="dpUpload">
+  <img id="adminDP" width="80" style="border-radius:50%"><br>
+
+  <h3>Touqeer Iqbal Baghoor</h3>
+  <a href="https://wa.me/923015800630" target="_blank">📱 WhatsApp</a>
+</div>
 
 <div class="card">
-<h3>Create Match</h3>
+  <h2>Create Match</h2>
 
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
+  <input id="team1" placeholder="Team 1">
+  <input id="team2" placeholder="Team 2">
 
-<input id="players1" placeholder="Team1 Players (comma separated)">
-<input id="players2" placeholder="Team2 Players (comma separated)">
+  <input id="players1" placeholder="Team1 Players (comma)">
+  <input id="players2" placeholder="Team2 Players (comma)">
 
-<button onclick="createMatch()">Create Match</button>
+  <button onclick="createMatch()">Create Match</button>
 </div>
 
 <div id="matches"></div>
-
-</div>
 
 <script>
 
@@ -91,6 +96,8 @@ function createMatch(){
   let p1 = document.getElementById("players1").value.split(",");
   let p2 = document.getElementById("players2").value.split(",");
 
+  if(!t1 || !t2) return alert("Fill teams");
+
   let match = {
     team1:t1,
     team2:t2,
@@ -98,7 +105,9 @@ function createMatch(){
     players2:p2,
     score:0,
     wickets:0,
-    batsman:p1[0],
+    balls:0,
+    striker:p1[0],
+    nonStriker:p1[1],
     bowler:p2[0]
   };
 
@@ -107,16 +116,41 @@ function createMatch(){
   render();
 }
 
-function addRun(i, run){
-  matches[i].score += run;
+function addRun(i,run){
+  let m = matches[i];
+  m.score += run;
+  m.balls++;
+
+  if(run%2!==0){
+    let temp = m.striker;
+    m.striker = m.nonStriker;
+    m.nonStriker = temp;
+  }
+
+  checkOver(m);
   save();
   render();
 }
 
-function addWicket(i){
-  matches[i].wickets += 1;
+function wicket(i){
+  let m = matches[i];
+  m.wickets++;
+  m.balls++;
+
+  m.striker = "OUT";
+
+  checkOver(m);
   save();
   render();
+}
+
+function checkOver(m){
+  if(m.balls===6){
+    m.balls=0;
+    let temp = m.striker;
+    m.striker = m.nonStriker;
+    m.nonStriker = temp;
+  }
 }
 
 function deleteMatch(i){
@@ -125,57 +159,51 @@ function deleteMatch(i){
   render();
 }
 
-function changeBatsman(i, val){
-  matches[i].batsman = val;
-  save();
-}
-
-function changeBowler(i, val){
-  matches[i].bowler = val;
-  save();
-}
-
 function render(){
-  let html = "";
+  let html="";
 
   matches.forEach((m,i)=>{
-
-    html += `
+    html+=`
     <div class="card">
-    <h3>${m.team1} vs ${m.team2}</h3>
+      <h3>${m.team1} vs ${m.team2}</h3>
+      <h2>${m.score}/${m.wickets}</h2>
+      <p>Over: ${Math.floor(m.balls/6)}.${m.balls}</p>
 
-    <h2>${m.score}/${m.wickets}</h2>
+      <p>Striker: <span class="highlight">${m.striker}</span></p>
+      <p>Non-Striker: ${m.nonStriker}</p>
+      <p>Bowler: ${m.bowler}</p>
 
-    <p>🏏 Batsman: ${m.batsman}</p>
-    <p>🎯 Bowler: ${m.bowler}</p>
+      <div class="score-btns">
+        <button onclick="addRun(${i},0)">0</button>
+        <button onclick="addRun(${i},1)">1</button>
+        <button onclick="addRun(${i},2)">2</button>
+        <button onclick="addRun(${i},3)">3</button>
+        <button onclick="addRun(${i},4)">4</button>
+        <button onclick="addRun(${i},6)">6</button>
+        <button class="wicket" onclick="wicket(${i})">Wicket</button>
+      </div>
 
-    <select onchange="changeBatsman(${i},this.value)">
-      ${m.players1.map(p=>`<option>${p}</option>`)}
-    </select>
-
-    <select onchange="changeBowler(${i},this.value)">
-      ${m.players2.map(p=>`<option>${p}</option>`)}
-    </select>
-
-    <br>
-
-    <button class="score-btn" onclick="addRun(${i},1)">1</button>
-    <button class="score-btn" onclick="addRun(${i},2)">2</button>
-    <button class="score-btn" onclick="addRun(${i},3)">3</button>
-    <button class="score-btn" onclick="addRun(${i},4)">4</button>
-    <button class="score-btn" onclick="addRun(${i},6)">6</button>
-
-    <button class="wicket" onclick="addWicket(${i})">Wicket</button>
-
-    <br><br>
-    <button onclick="deleteMatch(${i})">Delete Match</button>
-
+      <button onclick="deleteMatch(${i})">Delete Match</button>
     </div>
     `;
   });
 
   document.getElementById("matches").innerHTML = html;
 }
+
+document.getElementById("dpUpload").addEventListener("change", function(){
+  let file = this.files[0];
+  let reader = new FileReader();
+
+  reader.onload = function(){
+    document.getElementById("adminDP").src = reader.result;
+    localStorage.setItem("dp", reader.result);
+  }
+
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("adminDP").src = localStorage.getItem("dp");
 
 render();
 
