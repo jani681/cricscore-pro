@@ -2,10 +2,56 @@
 <html>
 <head>
   <title>CricScore Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0b1c2c;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    h2 {
+      text-align: center;
+      padding: 15px;
+      background: #06121d;
+      margin: 0;
+    }
+
+    #matches {
+      padding: 15px;
+    }
+
+    .card {
+      background: #122b45;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .teams {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .score {
+      font-size: 20px;
+      margin-top: 5px;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: #00ff9d;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>CricScore Pro</h2>
+<h2>🏏 CricScore Pro</h2>
 <div id="matches">Loading...</div>
 
 <script type="module">
@@ -30,20 +76,5 @@
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+
       html += `
-        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
-          <h3>${data.team1} vs ${data.team2}</h3>
-          <p>Score: ${data.score}</p>
-          <p>Status: ${data.status}</p>
-        </div>
-      `;
-    });
-
-    document.getElementById("matches").innerHTML = html;
-  }
-
-  loadMatches();
-</script>
-
-</body>
-</html>
