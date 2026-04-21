@@ -1,119 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CricScore VIP</title>
+  <title>CricScore Ultimate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #021c24;
-      color: white;
-    }
+    body { margin:0; font-family:sans-serif; background:#0b1e26; color:white; }
 
-    .header {
-      background: linear-gradient(90deg,#001f27,#003f4a);
-      padding: 15px;
-      text-align: center;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .header { background:#fff; color:#000; padding:12px; text-align:center; font-weight:bold; }
 
-    .container {
-      padding: 15px;
-    }
+    .admin-box { text-align:center; margin:10px; }
+    .admin-img { width:70px; border-radius:50%; }
+
+    .container { padding:10px; }
 
     .card {
-      background: #063544;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 15px;
-      position: relative;
-      animation: fadeIn 0.5s ease;
+      background:white; color:black;
+      border-radius:10px; padding:12px;
+      margin-bottom:10px; position:relative;
     }
 
-    @keyframes fadeIn {
-      from {opacity:0; transform: translateY(10px);}
-      to {opacity:1; transform: translateY(0);}
-    }
+    .score { font-size:22px; font-weight:bold; }
+    .live { color:red; }
 
-    .live { color:#00ff9d; }
-    .local { color:gold; font-size:12px; }
+    .six { position:absolute; top:5px; right:5px; color:green; font-weight:bold; }
+    .wicket { color:red; font-weight:bold; }
 
-    .admin {
-      display:none;
-      background:#03181f;
-      padding:15px;
-      margin:15px;
-      border-radius:12px;
-    }
+    .admin { background:#f5f5f5; color:black; padding:10px; margin:10px; border-radius:10px; }
 
-    input,button {
-      width:100%;
-      padding:10px;
-      margin:5px 0;
-      border-radius:8px;
-      border:none;
-    }
-
-    button {
-      background:#00ff9d;
-      font-weight:bold;
-    }
-
-    .six {
-      position:absolute;
-      top:10px;
-      right:10px;
-      color:yellow;
-      font-size:20px;
-      animation: pop 0.5s;
-    }
-
-    @keyframes pop {
-      0% {transform:scale(0);}
-      100% {transform:scale(1);}
-    }
-
-    .admin-info {
-      text-align:center;
-      margin:10px;
-    }
-
-    .admin-info img {
-      width:80px;
-      border-radius:50%;
-    }
+    input,button { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none; }
+    button { background:#00c853; color:white; font-weight:bold; }
   </style>
 </head>
 
 <body>
 
-<div class="header" onclick="unlockAdmin()">🏏 CricScore VIP</div>
+<div class="header">🏏 CricScore Ultimate</div>
 
-<div class="admin-info">
-  <img src="https://i.imgur.com/6VBx3io.png">
-  <p>Admin: Touqeer Iqbal Baghoor</p>
-  <a href="https://wa.me/923015800630" target="_blank">
-    📲 WhatsApp Contact
-  </a>
+<div class="admin-box">
+  <img class="admin-img" src="https://i.imgur.com/6VBx3io.png">
+  <h3>Touqeer Iqbal Baghoor</h3>
+  <a target="_blank" href="https://wa.me/923015800630">📱 WhatsApp</a>
 </div>
 
 <div class="container" id="app">Loading...</div>
 
-<div class="admin" id="adminPanel">
+<div class="admin">
   <h3>Admin Panel</h3>
-
-  <input id="key" placeholder="Admin Key">
   <input id="team1" placeholder="Team 1">
   <input id="team2" placeholder="Team 2">
-  <input id="score" placeholder="Score (e.g 120/3)">
+  <input id="score" placeholder="Score (120/3)">
   <input id="status" placeholder="Status">
-
-  <button onclick="addOnline()">🌐 Add Online Match</button>
-  <button onclick="addLocal()">📱 Add Local Match</button>
+  <input id="event" placeholder="Event (six/wicket)">
+  <button onclick="addOnline()">🌐 Add Online</button>
+  <button onclick="addLocal()">📱 Add Local</button>
 </div>
 
 <script type="module">
@@ -132,79 +72,66 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const appDiv = document.getElementById("app");
 let localMatches = JSON.parse(localStorage.getItem("localMatches")) || [];
+const appDiv = document.getElementById("app");
 
-function render(matches) {
+function render(matches){
   appDiv.innerHTML = "";
 
-  matches.forEach(m => {
-    let six = m.score.includes("6") ? "<div class='six'>🔥 6!</div>" : "";
-    let wicket = m.score.includes("/") ? "<div style='color:red'>⚡ Wicket!</div>" : "";
-
+  matches.forEach(m=>{
     appDiv.innerHTML += `
       <div class="card">
-        ${six}
+        ${m.event=="six" ? '<div class="six">🔥 SIX</div>' : ''}
         <b>${m.team1} vs ${m.team2}</b>
-        <p>Score: ${m.score}</p>
-        ${wicket}
-        <p class="live">Status: ${m.status}</p>
+        <p class="score">${m.score}</p>
+        <p class="${m.status=='live'?'live':''}">${m.status}</p>
+        ${m.event=="wicket" ? '<p class="wicket">⚡ WICKET</p>' : ''}
 
-        <a href="https://wa.me/923015800630?text=${m.team1}%20vs%20${m.team2}%20Score:%20${m.score}" target="_blank">
-          📲 Share on WhatsApp
+        <a target="_blank" href="https://wa.me/?text=${m.team1} vs ${m.team2} Score ${m.score}">
+        Share WhatsApp
         </a>
-
-        ${m.local ? "<p class='local'>📱 Local Match</p>" : ""}
       </div>
     `;
   });
+
+  if(matches.length===0){
+    appDiv.innerHTML="No matches";
+  }
 }
 
-onSnapshot(collection(db, "matches"), (snap) => {
-  let online = [];
-  snap.forEach(d => online.push(d.data()));
-  render([...online, ...localMatches]);
+// 🔴 Firebase live
+onSnapshot(collection(db,"matches"),snap=>{
+  let online=[];
+  snap.forEach(d=>online.push(d.data()));
+  render([...online,...localMatches]);
 });
 
-window.addOnline = async () => {
-  if (key.value !== "12345") return alert("Wrong Key");
-
+// 🌐 online add
+window.addOnline = async ()=>{
   await setDoc(doc(db,"matches",team1.value+team2.value),{
     team1:team1.value,
     team2:team2.value,
     score:score.value,
-    status:status.value
+    status:status.value,
+    event:event.value
   });
-
-  alert("Online Added");
 };
 
-window.addLocal = () => {
-  if (key.value !== "12345") return alert("Wrong Key");
-
-  let m = {
+// 📱 local add
+window.addLocal = ()=>{
+  let m={
     team1:team1.value,
     team2:team2.value,
     score:score.value,
     status:status.value,
-    local:true
+    event:event.value
   };
 
   localMatches.push(m);
-  localStorage.setItem("localMatches", JSON.stringify(localMatches));
+  localStorage.setItem("localMatches",JSON.stringify(localMatches));
 
   render(localMatches);
-  alert("Local Saved");
 };
-</script>
-
-<script>
-function unlockAdmin() {
-  let pass = prompt("Enter Admin Password");
-  if (pass === "admin123") {
-    document.getElementById("adminPanel").style.display = "block";
-  }
-}
 </script>
 
 </body>
