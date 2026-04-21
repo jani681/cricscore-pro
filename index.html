@@ -43,6 +43,12 @@ header {
   color: #00d4ff;
 }
 
+.score {
+  margin-top: 5px;
+  font-size: 15px;
+  color: #00ff9d;
+}
+
 .error {
   color: red;
   text-align: center;
@@ -80,9 +86,19 @@ async function loadMatches() {
           const team2 = match.matchInfo.team2.teamName;
           const status = match.matchInfo.status;
 
+          // ✅ Score logic
+          const score1 = match.matchScore?.team1Score?.inngs1
+            ? `${match.matchScore.team1Score.inngs1.runs}/${match.matchScore.team1Score.inngs1.wickets}`
+            : "N/A";
+
+          const score2 = match.matchScore?.team2Score?.inngs1
+            ? `${match.matchScore.team2Score.inngs1.runs}/${match.matchScore.team2Score.inngs1.wickets}`
+            : "";
+
           html += `
             <div class="card">
               <div class="teams">${team1} vs ${team2}</div>
+              <div class="score">${score1} ${score2}</div>
               <div class="status">${status}</div>
             </div>
           `;
@@ -102,7 +118,7 @@ async function loadMatches() {
   }
 }
 
-// Load on start
+// Load matches
 loadMatches();
 
 </script>
