@@ -1,8 +1,6 @@
 export default async function handler(req, res) {
-  const url = "https://cricbuzz-cricket.p.rapidapi.com/matches/v1/recent";
-
   try {
-    const response = await fetch(url, {
+    const response = await fetch("https://cricbuzz-cricket.p.rapidapi.com/matches/v1/live", {
       method: "GET",
       headers: {
         "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
@@ -11,9 +9,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    res.status(200).json(data);
 
+    res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch matches" });
+    res.status(500).json({ error: "API fetch failed" });
   }
 }
