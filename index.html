@@ -6,42 +6,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  font-family: Arial;
-  background: linear-gradient(135deg,#003d3d,#006666);
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#003d3d,#006666);
   color:white;
-  margin:0;
   padding:10px;
 }
-.card {
+.card{
   background:#065f46;
   padding:15px;
-  border-radius:12px;
+  border-radius:10px;
   margin-bottom:15px;
 }
-input,select {
+input,select{
   width:100%;
   padding:10px;
   margin:5px 0;
   border-radius:6px;
   border:none;
 }
-button {
+button{
   padding:10px;
+  margin:5px;
   border:none;
   border-radius:6px;
-  margin:5px;
   cursor:pointer;
 }
-.green {background:#22c55e;color:black;}
-.orange {background:#f59e0b;}
-.red {background:#ef4444;color:white;}
-.playerBox{
-  border:1px solid #ccc;
-  padding:5px;
-  margin:5px 0;
-  border-radius:6px;
-}
+.green{background:#22c55e;}
+.orange{background:#f59e0b;}
+.red{background:#ef4444;color:white;}
+.playerBox{border:1px solid #ccc;padding:5px;margin:5px 0;border-radius:6px;}
 img{width:40px;height:40px;border-radius:50%;}
 #animation{
   position:fixed;
@@ -61,7 +55,7 @@ img{width:40px;height:40px;border-radius:50%;}
 <!-- LOGIN -->
 <div id="login" class="card">
 <h3>Admin Login</h3>
-<input type="password" id="pass" placeholder="Enter Password">
+<input type="password" id="pass">
 <button class="green" onclick="login()">Login</button>
 </div>
 
@@ -74,7 +68,7 @@ img{width:40px;height:40px;border-radius:50%;}
 <input id="adminName" placeholder="Name">
 <input type="file" id="adminPic">
 <input id="adminWp" placeholder="WhatsApp">
-<button class="green" onclick="saveAdmin()">Save Admin</button>
+<button class="green" onclick="saveAdmin()">Save</button>
 <div id="adminShow"></div>
 </div>
 
@@ -103,19 +97,26 @@ img{width:40px;height:40px;border-radius:50%;}
 <div id="animation"></div>
 
 <script>
-let match = null;
 
+let match=null;
+
+/* LOGIN */
 function login(){
   if(document.getElementById("pass").value=="5800"){
-    document.getElementById("login").style.display="none";
-    document.getElementById("main").style.display="block";
-  } else alert("Wrong Password");
+    login.style.display="none";
+    main.style.display="block";
+    loadAdmin();
+    loadMatch();
+  }else alert("Wrong Password");
 }
 
+/* ADMIN */
 function saveAdmin(){
-  let name=document.getElementById("adminName").value;
-  let wp=document.getElementById("adminWp").value;
-  let file=document.getElementById("adminPic").files[0];
+  let name=adminName.value;
+  let wp=adminWp.value;
+  let file=adminPic.files[0];
+
+  if(!file) return alert("Upload Pic");
 
   let reader=new FileReader();
   reader.onload=function(){
@@ -123,18 +124,19 @@ function saveAdmin(){
     localStorage.setItem("admin",JSON.stringify(data));
     loadAdmin();
   }
-  if(file) reader.readAsDataURL(file);
+  reader.readAsDataURL(file);
 }
 
 function loadAdmin(){
   let a=JSON.parse(localStorage.getItem("admin"));
   if(!a) return;
-  document.getElementById("adminShow").innerHTML=
-  `<img src="${a.pic}"><br>${a.name}<br>
-  <a href="https://wa.me/${a.wp}" target="_blank">WhatsApp</a>`;
+  adminShow.innerHTML=`
+  <img src="${a.pic}">
+  <br>${a.name}
+  <br><a href="https://wa.me/${a.wp}" target="_blank">WhatsApp</a>`;
 }
-loadAdmin();
 
+/* PLAYER ADD */
 function addPlayer(team){
   let div=document.createElement("div");
   div.className="playerBox";
@@ -146,14 +148,18 @@ function addPlayer(team){
   document.getElementById(team).appendChild(div);
 }
 
+/* GET PLAYERS */
 function getPlayers(team){
   let arr=[];
   document.querySelectorAll("#"+team+" .playerBox").forEach(p=>{
-    let name=p.children[0].value;
-    let wp=p.children[1].value;
+    let obj={
+      name:p.children[0].value,
+      wp:p.children[1].value,
+      runs:0,
+      wickets:0,
+      pic:""
+    };
     let file=p.children[2].files[0];
-
-    let obj={name,wp,runs:0,wickets:0,pic:""};
     if(file){
       let reader=new FileReader();
       reader.onload=e=>obj.pic=e.target.result;
@@ -164,39 +170,61 @@ function getPlayers(team){
   return arr;
 }
 
+/* CREATE MATCH */
 function createMatch(){
   let team1=getPlayers("team1");
   let team2=getPlayers("team2");
 
-  if(team1.length==0 || team2.length==0){
-    alert("Add players first");
-    return;
-  }
-
   match={
-    t1:document.getElementById("t1").value,
-    t2:document.getElementById("t2").value,
+    t1:t1.value,
+    t2:t2.value,
     team1,team2,
-    score:0,wickets:0,
-    striker:0,non:1,bowler:0
+    innings:1,
+    score1:0,wickets1:0,
+    score2:0,wickets2:0,
+    striker:0,bowler:0
   };
 
+  saveMatch();
   render();
 }
 
+/* SAVE */
+function saveMatch(){
+  localStorage.setItem("match",JSON.stringify(match));
+}
+
+/* LOAD */
+function loadMatch(){
+  let m=localStorage.getItem("match");
+  if(m){
+    match=JSON.parse(m);
+    render();
+  }
+}
+
+/* RENDER */
 function render(){
   if(!match) return;
 
-  let html=`
-  <h3>${match.t1} vs ${match.t2}</h3>
-  <h2>${match.score}/${match.wickets}</h2>
+  let score = match.innings==1
+    ? `${match.score1}/${match.wickets1}`
+    : `${match.score2}/${match.wickets2}`;
 
-  <select onchange="match.striker=this.value">
-  ${match.team1.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  let batting = match.innings==1 ? match.team1 : match.team2;
+  let bowling = match.innings==1 ? match.team2 : match.team1;
+
+  matchBox.innerHTML=`
+  <h3>${match.t1} vs ${match.t2}</h3>
+  <h2>${score}</h2>
+  <h4>Innings: ${match.innings}</h4>
+
+  <select onchange="match.striker=this.value;saveMatch()">
+  ${batting.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
   </select>
 
-  <select onchange="match.bowler=this.value">
-  ${match.team2.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  <select onchange="match.bowler=this.value;saveMatch()">
+  ${bowling.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
   </select>
 
   <br>
@@ -212,46 +240,87 @@ function render(){
   <button onclick="nb()">No Ball</button>
 
   <h4>Players</h4>
-  ${match.team1.map(p=>`${p.name} - ${p.runs} runs`).join("<br>")}
+
+  ${match.team1.map((p,i)=>`
+  <div onclick="showPlayer(${i},1)">
+  <img src="${p.pic||''}">
+  ${p.name} - ${p.runs} runs
+  </div>`).join("")}
+
   <hr>
-  ${match.team2.map(p=>`${p.name} - ${p.wickets} wkts`).join("<br>")}
+
+  ${match.team2.map((p,i)=>`
+  <div onclick="showPlayer(${i},2)">
+  <img src="${p.pic||''}">
+  ${p.name} - ${p.wickets} wkts
+  </div>`).join("")}
   `;
-
-  document.getElementById("matchBox").innerHTML=html;
 }
 
+/* RUN */
 function run(r){
-  match.score+=r;
-  match.team1[match.striker].runs+=r;
+  if(match.innings==1){
+    match.score1+=r;
+    match.team1[match.striker].runs+=r;
+  }else{
+    match.score2+=r;
+    match.team2[match.striker].runs+=r;
+  }
   anim(r);
+  saveMatch();
   render();
 }
 
+/* WICKET */
 function wicket(){
-  match.wickets++;
-  match.team2[match.bowler].wickets++;
+  if(match.innings==1){
+    if(match.wickets1>=10) return alert("All Out");
+    match.wickets1++;
+    if(match.wickets1==10){
+      alert("Innings 1 End");
+      match.innings=2;
+    }
+  }else{
+    if(match.wickets2>=10) return alert("Match End");
+    match.wickets2++;
+  }
   anim("WICKET");
+  saveMatch();
   render();
 }
 
+/* WIDE */
 function wide(){
-  match.score+=1;
+  if(match.innings==1) match.score1++;
+  else match.score2++;
   anim("WIDE");
+  saveMatch();
   render();
 }
 
+/* NO BALL */
 function nb(){
-  match.score+=1;
+  if(match.innings==1) match.score1++;
+  else match.score2++;
   anim("NO BALL");
+  saveMatch();
   render();
 }
 
-function anim(text){
-  let a=document.getElementById("animation");
-  a.innerText=text;
-  a.style.display="block";
-  setTimeout(()=>a.style.display="none",1000);
+/* PLAYER PROFILE */
+function showPlayer(i,t){
+  let p = t==1 ? match.team1[i] : match.team2[i];
+  alert(`Name: ${p.name}\nRuns: ${p.runs}\nWickets: ${p.wickets}\nWhatsApp: ${p.wp}`);
+  window.open("https://wa.me/"+p.wp);
 }
+
+/* ANIMATION */
+function anim(text){
+  animation.innerText=text;
+  animation.style.display="block";
+  setTimeout(()=>animation.style.display="none",1000);
+}
+
 </script>
 
 </body>
