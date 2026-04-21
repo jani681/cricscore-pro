@@ -1,177 +1,122 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CricScore VIP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CricScore VIP</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: linear-gradient(135deg,#022,#055);
-      color: white;
-    }
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(135deg,#021c1e,#004445);
+  color: white;
+  text-align: center;
+}
 
-    header {
-      text-align: center;
-      padding: 20px;
-      font-size: 22px;
-      background: #011;
-    }
+h1 { margin-top:20px; }
 
-    .admin, .creator {
-      padding: 15px;
-      text-align: center;
-    }
+.container {
+  width: 95%;
+  margin: auto;
+}
 
-    input {
-      width: 90%;
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: none;
-    }
+.card {
+  background: white;
+  color: black;
+  padding: 15px;
+  border-radius: 15px;
+  margin: 15px 0;
+}
 
-    button {
-      padding: 10px;
-      margin: 5px;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      background: limegreen;
-      color: white;
-    }
+input, select {
+  width: 90%;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 10px;
+  border: none;
+}
 
-    .card {
-      background: white;
-      color: black;
-      margin: 15px;
-      padding: 15px;
-      border-radius: 12px;
-    }
+button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 10px;
+  margin: 5px;
+  background: green;
+  color: white;
+  font-weight: bold;
+}
 
-    .score {
-      font-size: 30px;
-      font-weight: bold;
-    }
+.score-btn {
+  background: orange;
+}
 
-    .controls button {
-      background: #007bff;
-    }
-
-    .wicket {
-      background: red !important;
-    }
-
-    img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-    }
-  </style>
+.wicket {
+  background: red;
+}
+</style>
 </head>
 
 <body>
 
-<header>🏏 CricScore VIP</header>
+<h1>🏏 CricScore VIP</h1>
 
-<!-- ADMIN PROFILE -->
-<div class="admin">
-  <input type="file" id="dpUpload">
-  <br>
-  <img id="dp" src="" alt="Admin DP">
-  <h3 id="adminName">Touqeer Iqbal Baghoor</h3>
-  <a href="https://wa.me/923015800630" target="_blank">📱 WhatsApp</a>
+<div class="container">
+
+<div class="card">
+<h3>Create Match</h3>
+
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
+
+<input id="players1" placeholder="Team1 Players (comma separated)">
+<input id="players2" placeholder="Team2 Players (comma separated)">
+
+<button onclick="createMatch()">Create Match</button>
 </div>
 
-<!-- MATCH CREATOR -->
-<div class="creator">
-  <h3>Create Match</h3>
-  <input id="team1" placeholder="Team 1">
-  <input id="team2" placeholder="Team 2">
-
-  <input id="players1" placeholder="Team1 Players (comma)">
-  <input id="players2" placeholder="Team2 Players (comma)">
-
-  <button onclick="createMatch()">Create Match</button>
-</div>
-
-<!-- MATCHES -->
 <div id="matches"></div>
+
+</div>
 
 <script>
 
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
-function save() {
+function save(){
   localStorage.setItem("matches", JSON.stringify(matches));
 }
 
-/* ADMIN DP */
-document.getElementById("dpUpload").addEventListener("change", function(e){
-  let reader = new FileReader();
-  reader.onload = function(){
-    document.getElementById("dp").src = reader.result;
-    localStorage.setItem("dp", reader.result);
-  }
-  reader.readAsDataURL(e.target.files[0]);
-});
+function createMatch(){
+  let t1 = document.getElementById("team1").value;
+  let t2 = document.getElementById("team2").value;
 
-document.getElementById("dp").src = localStorage.getItem("dp");
+  let p1 = document.getElementById("players1").value.split(",");
+  let p2 = document.getElementById("players2").value.split(",");
 
-/* CREATE MATCH */
-function createMatch() {
-  let t1 = team1.value;
-  let t2 = team2.value;
+  let match = {
+    team1:t1,
+    team2:t2,
+    players1:p1,
+    players2:p2,
+    score:0,
+    wickets:0,
+    batsman:p1[0],
+    bowler:p2[0]
+  };
 
-  let p1 = players1.value.split(",");
-  let p2 = players2.value.split(",");
-
-  matches.push({
-    team1: t1,
-    team2: t2,
-    players1: p1,
-    players2: p2,
-    score: 0,
-    wickets: 0,
-    batsman: p1[0],
-    bowler: p2[0]
-  });
-
+  matches.push(match);
   save();
   render();
 }
 
-/* SCORE FUNCTIONS */
-function run(i, r) {
-  matches[i].score += r;
+function addRun(i, run){
+  matches[i].score += run;
   save();
   render();
 }
 
-function wicket(i) {
-  matches[i].wickets++;
-  alert("⚡ WICKET!");
+function addWicket(i){
+  matches[i].wickets += 1;
   save();
   render();
-}
-
-function changeBatsman(i) {
-  let name = prompt("New Batsman:");
-  if(name){
-    matches[i].batsman = name;
-    save();
-    render();
-  }
-}
-
-function changeBowler(i) {
-  let name = prompt("New Bowler:");
-  if(name){
-    matches[i].bowler = name;
-    save();
-    render();
-  }
 }
 
 function deleteMatch(i){
@@ -180,40 +125,50 @@ function deleteMatch(i){
   render();
 }
 
-/* RENDER UI */
-function render() {
+function changeBatsman(i, val){
+  matches[i].batsman = val;
+  save();
+}
+
+function changeBowler(i, val){
+  matches[i].bowler = val;
+  save();
+}
+
+function render(){
   let html = "";
 
   matches.forEach((m,i)=>{
+
     html += `
     <div class="card">
-      <h2>${m.team1} vs ${m.team2}</h2>
+    <h3>${m.team1} vs ${m.team2}</h3>
 
-      <div class="score">${m.score}/${m.wickets}</div>
+    <h2>${m.score}/${m.wickets}</h2>
 
-      <p>🏏 Batsman: ${m.batsman} 
-      <button onclick="changeBatsman(${i})">Change</button></p>
+    <p>🏏 Batsman: ${m.batsman}</p>
+    <p>🎯 Bowler: ${m.bowler}</p>
 
-      <p>🎯 Bowler: ${m.bowler} 
-      <button onclick="changeBowler(${i})">Change</button></p>
+    <select onchange="changeBatsman(${i},this.value)">
+      ${m.players1.map(p=>`<option>${p}</option>`)}
+    </select>
 
-      <div class="controls">
-        <button onclick="run(${i},0)">0</button>
-        <button onclick="run(${i},1)">1</button>
-        <button onclick="run(${i},2)">2</button>
-        <button onclick="run(${i},3)">3</button>
-        <button onclick="run(${i},4)">4</button>
-        <button onclick="run(${i},6)">6</button>
-        <button class="wicket" onclick="wicket(${i})">W</button>
-      </div>
+    <select onchange="changeBowler(${i},this.value)">
+      ${m.players2.map(p=>`<option>${p}</option>`)}
+    </select>
 
-      <button onclick="deleteMatch(${i})">❌ Delete Match</button>
+    <br>
 
-      <p><b>${m.team1}:</b> ${m.players1.join(", ")}</p>
-      <p><b>${m.team2}:</b> ${m.players2.join(", ")}</p>
+    <button class="score-btn" onclick="addRun(${i},1)">1</button>
+    <button class="score-btn" onclick="addRun(${i},2)">2</button>
+    <button class="score-btn" onclick="addRun(${i},3)">3</button>
+    <button class="score-btn" onclick="addRun(${i},4)">4</button>
+    <button class="score-btn" onclick="addRun(${i},6)">6</button>
 
-      <a href="https://wa.me/?text=${m.team1} vs ${m.team2} Score ${m.score}/${m.wickets}" target="_blank">
-      📤 Share WhatsApp</a>
+    <button class="wicket" onclick="addWicket(${i})">Wicket</button>
+
+    <br><br>
+    <button onclick="deleteMatch(${i})">Delete Match</button>
 
     </div>
     `;
