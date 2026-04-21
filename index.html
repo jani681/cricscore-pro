@@ -6,37 +6,65 @@
 
 <style>
 body{
-  margin:0;
-  font-family:sans-serif;
-  background:#00332f;
-  color:white;
+margin:0;
+font-family:sans-serif;
+background:linear-gradient(135deg,#00332f,#00695c);
+color:white;
 }
+
 .container{padding:15px;}
+
 .card{
-  background:#ffffff10;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
+background:#ffffff10;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
 }
-input{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:8px;
-  border:none;
+
+input,select{
+width:100%;
+padding:10px;
+margin:5px 0;
+border-radius:8px;
+border:none;
 }
+
 button{
-  padding:10px;
-  border:none;
-  border-radius:8px;
+padding:10px;
+border:none;
+border-radius:8px;
+margin:5px;
 }
+
 .green{background:#00c853;color:white;width:100%;}
-.score button{
-  width:30%;
-  margin:5px;
-  background:orange;
-}
+.score button{width:30%;background:orange;}
 .wicket{background:red;color:white;}
+.delete{background:#ff1744;color:white;width:100%;}
+
+.player{
+display:flex;
+align-items:center;
+gap:10px;
+margin:5px 0;
+}
+
+.player img{
+width:35px;
+height:35px;
+border-radius:50%;
+}
+
+.anim{
+text-align:center;
+font-size:20px;
+color:yellow;
+animation:pop 0.5s ease;
+}
+
+@keyframes pop{
+0%{transform:scale(0.5);}
+100%{transform:scale(1);}
+}
 </style>
 
 </head>
@@ -47,13 +75,25 @@ button{
 
 <h2>🏏 CricScore VIP</h2>
 
+<!-- ADMIN -->
+<div class="card">
+<h3>Admin</h3>
+<input id="adminName" placeholder="Admin Name">
+<input id="adminDp" placeholder="Admin DP Image URL">
+<input id="adminWp" placeholder="WhatsApp Number">
+<button class="green" onclick="saveAdmin()">Save Admin</button>
+<div id="adminShow"></div>
+</div>
+
+<!-- CREATE MATCH -->
 <div class="card">
 <h3>Create Match</h3>
 
 <input id="t1" placeholder="Team 1">
 <input id="t2" placeholder="Team 2">
-<input id="p1" placeholder="Team1 Players (11 names comma separated)">
-<input id="p2" placeholder="Team2 Players (11 names comma separated)">
+
+<input id="p1" placeholder="Team1 Players (11 names)">
+<input id="p2" placeholder="Team2 Players (11 names)">
 
 <button class="green" onclick="createMatch()">Create Match</button>
 </div>
@@ -64,79 +104,131 @@ button{
 
 <script>
 
-let matches = [];
+let matches = JSON.parse(localStorage.getItem("matches"))||[];
+let admin = JSON.parse(localStorage.getItem("admin"))||{};
+
+function save(){
+localStorage.setItem("matches",JSON.stringify(matches));
+}
+
+function saveAdmin(){
+admin={
+name:adminName.value,
+dp:adminDp.value,
+wp:adminWp.value
+};
+localStorage.setItem("admin",JSON.stringify(admin));
+showAdmin();
+}
+
+function showAdmin(){
+if(!admin.name) return;
+adminShow.innerHTML=`
+<div style="text-align:center">
+<img src="${admin.dp}" width="80" style="border-radius:50%"><br>
+<b>${admin.name}</b><br>
+<a href="https://wa.me/${admin.wp}" target="_blank">WhatsApp</a>
+</div>
+`;
+}
+showAdmin();
 
 function createPlayers(str){
-let arr = str.split(",");
-if(arr.length != 11){
+let arr=str.split(",");
+if(arr.length!=11){
 alert("11 players required");
 return null;
 }
-return arr.map(n => ({name:n.trim(), runs:0, wickets:0}));
+return arr.map(n=>({
+name:n.trim(),
+runs:0,
+wickets:0,
+img:"https://i.pravatar.cc/40",
+wp:""
+}));
 }
 
 function createMatch(){
-
-let t1 = document.getElementById("t1").value;
-let t2 = document.getElementById("t2").value;
-
-let p1 = createPlayers(document.getElementById("p1").value);
-let p2 = createPlayers(document.getElementById("p2").value);
-
-if(!p1 || !p2) return;
+let p1=createPlayers(p1Input.value);
+let p2=createPlayers(p2Input.value);
+if(!p1||!p2)return;
 
 matches.push({
-t1,t2,p1,p2,
+t1:t1.value,
+t2:t2.value,
+p1,p2,
 score:0,
 wickets:0,
 striker:0,
-bowler:0
+non:1,
+bowler:0,
+anim:""
 });
-
+save();
 render();
 }
 
 function run(i,val){
-let m = matches[i];
-m.score += val;
-m.p1[m.striker].runs += val;
+let m=matches[i];
+m.score+=val;
+m.p1[m.striker].runs+=val;
+
+if(val==6)m.anim="🔥 SIX!";
+else m.anim="+"+val;
+
+swap(m);
+save();
 render();
+
+setTimeout(()=>{m.anim="";render();},1000);
+}
+
+function swap(m){
+let temp=m.striker;
+m.striker=m.non;
+m.non=temp;
 }
 
 function wicket(i){
-let m = matches[i];
+let m=matches[i];
 
-if(m.wickets >= 10){
-alert("All out");
-return;
-}
+if(m.wickets>=10){alert("All out");return;}
 
 m.wickets++;
-m.p2[m.bowler].wickets++;
+m.anim="💥 WICKET!";
+
+m.striker = (m.striker+1)%11;
+
+save();
 render();
+
+setTimeout(()=>{m.anim="";render();},1000);
 }
 
 function render(){
 
-let html = "";
+let html="";
 
 matches.forEach((m,i)=>{
 
-html += `
+html+=`
 <div class="card">
 
 <h3>${m.t1} vs ${m.t2}</h3>
 <h2>${m.score}/${m.wickets}</h2>
 
-<p>🏏 ${m.p1[m.striker].name}</p>
-<p>🎯 ${m.p2[m.bowler].name}</p>
+<div class="anim">${m.anim}</div>
+
+<p>🏏 ${m.p1[m.striker].name} (${m.p1[m.striker].runs})</p>
+<p>🏏 ${m.p1[m.non].name}</p>
+<p>🎯 ${m.p2[m.bowler].name} (${m.p2[m.bowler].wickets})</p>
 
 <select onchange="matches[${i}].striker=this.value;render()">
-${m.p1.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+${m.p1.map((p,idx)=>`<option value="${idx}" ${idx==m.striker?"selected":""}>${p.name}</option>`).join("")}
 </select>
 
 <select onchange="matches[${i}].bowler=this.value;render()">
-${m.p2.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
+${m.p2.map((p,idx)=>`<option value="${idx}" ${idx==m.bowler?"selected":""}>${p.name}</option>`).join("")}
 </select>
 
 <div class="score">
@@ -148,13 +240,41 @@ ${m.p2.map((p,idx)=>`<option value="${idx}">${p.name}</option>`).join("")}
 <button class="wicket" onclick="wicket(${i})">Wicket</button>
 </div>
 
+<h4>Players</h4>
+
+${m.p1.map(p=>`
+<div class="player">
+<img src="${p.img}">
+${p.name} - Runs: ${p.runs}
+</div>
+`).join("")}
+
+<hr>
+
+${m.p2.map(p=>`
+<div class="player">
+<img src="${p.img}">
+${p.name} - Wickets: ${p.wickets}
+</div>
+`).join("")}
+
+<button class="delete" onclick="del(${i})">Delete Match</button>
+
 </div>
 `;
 
 });
 
-document.getElementById("matches").innerHTML = html;
+document.getElementById("matches").innerHTML=html;
 }
+
+function del(i){
+matches.splice(i,1);
+save();
+render();
+}
+
+render();
 
 </script>
 
