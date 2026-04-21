@@ -1,61 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CricScore VIP PRO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family:Arial;
-  background:linear-gradient(135deg,#003d3d,#006666);
-  color:white;
-  padding:10px;
-}
-.card{
-  background:#065f46;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-input,select{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:6px;
-  border:none;
-}
-button{
-  padding:10px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
+body{font-family:Arial;background:#004d40;color:#fff;padding:10px;}
+.card{background:#065f46;padding:15px;border-radius:10px;margin-bottom:15px;}
+input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:6px;}
+button{padding:10px;margin:5px;border:none;border-radius:6px;cursor:pointer;}
 .green{background:#22c55e;}
-.orange{background:#f59e0b;}
 .red{background:#ef4444;color:white;}
+.orange{background:#f59e0b;}
 .playerBox{border:1px solid #ccc;padding:5px;margin:5px 0;border-radius:6px;}
 img{width:40px;height:40px;border-radius:50%;}
-#animation{
-  position:fixed;
-  top:40%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  font-size:40px;
-  display:none;
-}
+#anim{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
+font-size:40px;display:none;}
 </style>
 </head>
 
 <body>
 
-<h2>🏏 CricScore VIP PRO</h2>
+<h2 ondblclick="secretOpen()">🏏 CricScore VIP PRO</h2>
 
 <!-- LOGIN -->
 <div id="login" class="card">
-<h3>Admin Login</h3>
-<input type="password" id="pass">
+<input type="password" id="pass" placeholder="Enter Password">
 <button class="green" onclick="login()">Login</button>
 </div>
 
@@ -69,6 +39,12 @@ img{width:40px;height:40px;border-radius:50%;}
 <input type="file" id="adminPic">
 <input id="adminWp" placeholder="WhatsApp">
 <button class="green" onclick="saveAdmin()">Save</button>
+
+<input id="newPass" placeholder="Change Password">
+<button onclick="changePass()">Update Password</button>
+
+<button class="red" onclick="logout()">Logout</button>
+
 <div id="adminShow"></div>
 </div>
 
@@ -78,55 +54,75 @@ img{width:40px;height:40px;border-radius:50%;}
 <input id="t1" placeholder="Team 1">
 <input id="t2" placeholder="Team 2">
 
-<h4>Team 1 Players</h4>
+<h4>Team 1</h4>
 <div id="team1"></div>
-<button onclick="addPlayer('team1')">+ Add Player</button>
+<button onclick="addPlayer('team1')">+ Player</button>
 
-<h4>Team 2 Players</h4>
+<h4>Team 2</h4>
 <div id="team2"></div>
-<button onclick="addPlayer('team2')">+ Add Player</button>
+<button onclick="addPlayer('team2')">+ Player</button>
 
 <button class="green" onclick="createMatch()">Create Match</button>
 </div>
 
-<!-- MATCH -->
 <div class="card" id="matchBox"></div>
 
 </div>
 
-<div id="animation"></div>
+<div id="anim"></div>
 
 <script>
 
 let match=null;
+let PASSWORD = localStorage.getItem("pass") || "5800";
 
 /* LOGIN */
 function login(){
-  if(document.getElementById("pass").value=="5800"){
-    login.style.display="none";
-    main.style.display="block";
+  let val=document.getElementById("pass").value;
+  if(val==PASSWORD){
+    document.getElementById("login").style.display="none";
+    document.getElementById("main").style.display="block";
     loadAdmin();
     loadMatch();
-  }else alert("Wrong Password");
+  } else alert("Wrong Password");
 }
 
-/* ADMIN */
+/* SECRET OPEN */
+function secretOpen(){
+  document.getElementById("login").style.display="block";
+}
+
+/* LOGOUT */
+function logout(){
+  location.reload();
+}
+
+/* CHANGE PASSWORD */
+function changePass(){
+  let p=document.getElementById("newPass").value;
+  if(p.length<3) return alert("Weak Password");
+  localStorage.setItem("pass",p);
+  PASSWORD=p;
+  alert("Password Updated");
+}
+
+/* ADMIN SAVE */
 function saveAdmin(){
-  let name=adminName.value;
-  let wp=adminWp.value;
   let file=adminPic.files[0];
-
-  if(!file) return alert("Upload Pic");
-
   let reader=new FileReader();
   reader.onload=function(){
-    let data={name,wp,pic:reader.result};
+    let data={
+      name:adminName.value,
+      wp:adminWp.value,
+      pic:reader.result
+    };
     localStorage.setItem("admin",JSON.stringify(data));
     loadAdmin();
   }
-  reader.readAsDataURL(file);
+  if(file) reader.readAsDataURL(file);
 }
 
+/* LOAD ADMIN */
 function loadAdmin(){
   let a=JSON.parse(localStorage.getItem("admin"));
   if(!a) return;
@@ -136,71 +132,58 @@ function loadAdmin(){
   <br><a href="https://wa.me/${a.wp}" target="_blank">WhatsApp</a>`;
 }
 
-/* PLAYER ADD */
+/* ADD PLAYER */
 function addPlayer(team){
-  let div=document.createElement("div");
-  div.className="playerBox";
-  div.innerHTML=`
+  let d=document.createElement("div");
+  d.className="playerBox";
+  d.innerHTML=`
   <input placeholder="Name">
   <input placeholder="WhatsApp">
   <input type="file">
   `;
-  document.getElementById(team).appendChild(div);
+  document.getElementById(team).appendChild(d);
 }
 
 /* GET PLAYERS */
 function getPlayers(team){
   let arr=[];
   document.querySelectorAll("#"+team+" .playerBox").forEach(p=>{
-    let obj={
+    arr.push({
       name:p.children[0].value,
       wp:p.children[1].value,
       runs:0,
       wickets:0,
       pic:""
-    };
-    let file=p.children[2].files[0];
-    if(file){
-      let reader=new FileReader();
-      reader.onload=e=>obj.pic=e.target.result;
-      reader.readAsDataURL(file);
-    }
-    arr.push(obj);
+    });
   });
   return arr;
 }
 
 /* CREATE MATCH */
 function createMatch(){
-  let team1=getPlayers("team1");
-  let team2=getPlayers("team2");
-
   match={
     t1:t1.value,
     t2:t2.value,
-    team1,team2,
+    team1:getPlayers("team1"),
+    team2:getPlayers("team2"),
     innings:1,
     score1:0,wickets1:0,
     score2:0,wickets2:0,
     striker:0,bowler:0
   };
-
-  saveMatch();
+  save();
   render();
 }
 
 /* SAVE */
-function saveMatch(){
+function save(){
   localStorage.setItem("match",JSON.stringify(match));
 }
 
 /* LOAD */
 function loadMatch(){
   let m=localStorage.getItem("match");
-  if(m){
-    match=JSON.parse(m);
-    render();
-  }
+  if(m){ match=JSON.parse(m); render(); }
 }
 
 /* RENDER */
@@ -208,23 +191,23 @@ function render(){
   if(!match) return;
 
   let score = match.innings==1
-    ? `${match.score1}/${match.wickets1}`
-    : `${match.score2}/${match.wickets2}`;
+  ? `${match.score1}/${match.wickets1}`
+  : `${match.score2}/${match.wickets2}`;
 
-  let batting = match.innings==1 ? match.team1 : match.team2;
-  let bowling = match.innings==1 ? match.team2 : match.team1;
+  let bat = match.innings==1 ? match.team1 : match.team2;
+  let bowl = match.innings==1 ? match.team2 : match.team1;
 
   matchBox.innerHTML=`
   <h3>${match.t1} vs ${match.t2}</h3>
   <h2>${score}</h2>
-  <h4>Innings: ${match.innings}</h4>
+  <h4>Innings ${match.innings}</h4>
 
-  <select onchange="match.striker=this.value;saveMatch()">
-  ${batting.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  <select onchange="match.striker=this.value;save()">
+  ${bat.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
   </select>
 
-  <select onchange="match.bowler=this.value;saveMatch()">
-  ${bowling.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
+  <select onchange="match.bowler=this.value;save()">
+  ${bowl.map((p,i)=>`<option value="${i}">${p.name}</option>`)}
   </select>
 
   <br>
@@ -242,17 +225,15 @@ function render(){
   <h4>Players</h4>
 
   ${match.team1.map((p,i)=>`
-  <div onclick="showPlayer(${i},1)">
-  <img src="${p.pic||''}">
-  ${p.name} - ${p.runs} runs
+  <div onclick="profile(${i},1)">
+  ${p.name} - ${p.runs}
   </div>`).join("")}
 
   <hr>
 
   ${match.team2.map((p,i)=>`
-  <div onclick="showPlayer(${i},2)">
-  <img src="${p.pic||''}">
-  ${p.name} - ${p.wickets} wkts
+  <div onclick="profile(${i},2)">
+  ${p.name} - ${p.wickets}
   </div>`).join("")}
   `;
 }
@@ -262,12 +243,12 @@ function run(r){
   if(match.innings==1){
     match.score1+=r;
     match.team1[match.striker].runs+=r;
-  }else{
+  } else {
     match.score2+=r;
     match.team2[match.striker].runs+=r;
   }
   anim(r);
-  saveMatch();
+  save();
   render();
 }
 
@@ -276,16 +257,13 @@ function wicket(){
   if(match.innings==1){
     if(match.wickets1>=10) return alert("All Out");
     match.wickets1++;
-    if(match.wickets1==10){
-      alert("Innings 1 End");
-      match.innings=2;
-    }
-  }else{
+    if(match.wickets1==10){ match.innings=2; alert("Innings End"); }
+  } else {
     if(match.wickets2>=10) return alert("Match End");
     match.wickets2++;
   }
   anim("WICKET");
-  saveMatch();
+  save();
   render();
 }
 
@@ -294,31 +272,32 @@ function wide(){
   if(match.innings==1) match.score1++;
   else match.score2++;
   anim("WIDE");
-  saveMatch();
+  save();
   render();
 }
 
-/* NO BALL */
+/* NB */
 function nb(){
   if(match.innings==1) match.score1++;
   else match.score2++;
-  anim("NO BALL");
-  saveMatch();
+  anim("NB");
+  save();
   render();
 }
 
-/* PLAYER PROFILE */
-function showPlayer(i,t){
+/* PROFILE */
+function profile(i,t){
   let p = t==1 ? match.team1[i] : match.team2[i];
-  alert(`Name: ${p.name}\nRuns: ${p.runs}\nWickets: ${p.wickets}\nWhatsApp: ${p.wp}`);
+  alert(`${p.name}\nRuns:${p.runs}\nWkts:${p.wickets}\n${p.wp}`);
   window.open("https://wa.me/"+p.wp);
 }
 
 /* ANIMATION */
-function anim(text){
-  animation.innerText=text;
-  animation.style.display="block";
-  setTimeout(()=>animation.style.display="none",1000);
+function anim(t){
+  let a=document.getElementById("anim");
+  a.innerText=t;
+  a.style.display="block";
+  setTimeout(()=>a.style.display="none",1000);
 }
 
 </script>
