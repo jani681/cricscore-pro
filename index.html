@@ -1,266 +1,228 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CricScore VIP</title>
+<meta charset="UTF-8">
+<title>CricScore VIP PRO</title>
 
 <style>
-body {
-  font-family: Arial;
-  background: #064e3b;
-  color: white;
-  padding: 10px;
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#004d40,#00695c);
+  color:white;
 }
-.card {
-  background: #065f46;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
+.container{padding:15px;}
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
 }
-input, textarea, select {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 5px;
-  border: none;
+input,select{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:6px;
+  border:none;
 }
-button {
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  margin: 3px;
+button{
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  margin-top:5px;
+  cursor:pointer;
 }
-.green { background: #22c55e; }
-.orange { background: orange; }
-.red { background: red; color:white; }
+.green{background:#00c853;color:white;}
+.orange{background:#ff9800;}
+.red{background:red;color:white;}
 
-.player {
+.score{font-size:30px;font-weight:bold;}
+
+.player{
   display:flex;
   align-items:center;
-  gap:10px;
   margin:5px 0;
 }
-.player img {
-  width:40px;
-  height:40px;
+.player img{
+  width:40px;height:40px;
   border-radius:50%;
+  margin-right:10px;
+}
+
+/* animation */
+.animate{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:50px;
+  font-weight:bold;
+  opacity:0;
+  animation:pop 1s;
+}
+@keyframes pop{
+  0%{opacity:0;transform:scale(0.5);}
+  50%{opacity:1;transform:scale(1.3);}
+  100%{opacity:0;}
 }
 </style>
 </head>
 
 <body>
 
-<h2>🏏 CricScore VIP</h2>
+<div class="container">
+
+<h2>🏏 CricScore VIP PRO</h2>
 
 <!-- ADMIN -->
 <div class="card">
 <h3>Admin</h3>
-<input id="adminName" placeholder="Name">
-<input type="file" id="adminDP">
-<input id="adminWA" placeholder="WhatsApp Number">
+<input id="adminName" placeholder="Admin Name">
+<input type="file" id="adminPic">
+<input id="adminPhone" placeholder="WhatsApp Number">
 <button class="green" onclick="saveAdmin()">Save Admin</button>
-<div id="adminDisplay"></div>
+
+<div id="adminView"></div>
 </div>
 
 <!-- CREATE MATCH -->
 <div class="card">
 <h3>Create Match</h3>
+
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
 
-<textarea id="players1" placeholder="Team1 Players: name,wa | name,wa"></textarea>
+<textarea id="players1" placeholder="Team1 Players (comma separated)"></textarea>
 <textarea id="players2" placeholder="Team2 Players"></textarea>
 
 <button class="green" onclick="createMatch()">Create Match</button>
 </div>
 
-<!-- MATCHES -->
-<div id="matches"></div>
+<!-- MATCH -->
+<div id="matchArea"></div>
+
+</div>
 
 <script>
-
-let matches = JSON.parse(localStorage.getItem("matches")) || []
+let match = null;
 
 // ADMIN SAVE
 function saveAdmin(){
-  let name = document.getElementById("adminName").value
-  let wa = document.getElementById("adminWA").value
-  let file = document.getElementById("adminDP").files[0]
+  const name = adminName.value;
+  const phone = adminPhone.value;
+  const file = adminPic.files[0];
 
-  if(!file){
-    alert("DP select karo")
-    return
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(){
+      const admin = {
+        name,
+        phone,
+        pic: reader.result
+      };
+      localStorage.setItem("admin",JSON.stringify(admin));
+      showAdmin();
+    }
+    reader.readAsDataURL(file);
   }
-
-  let reader = new FileReader()
-  reader.onload = function(){
-    localStorage.setItem("admin", JSON.stringify({
-      name, wa, dp: reader.result
-    }))
-    showAdmin()
-  }
-  reader.readAsDataURL(file)
 }
 
 // SHOW ADMIN
 function showAdmin(){
-  let admin = JSON.parse(localStorage.getItem("admin"))
-  if(!admin) return
-
-  document.getElementById("adminDisplay").innerHTML = `
-    <img src="${admin.dp}" width="60"><br>
-    ${admin.name}<br>
-    <a href="https://wa.me/${admin.wa}" target="_blank" style="color:lightgreen">WhatsApp</a>
-  `
+  const a = JSON.parse(localStorage.getItem("admin"));
+  if(!a) return;
+  adminView.innerHTML = `
+    <img src="${a.pic}" width="80"><br>
+    ${a.name}<br>
+    <a href="https://wa.me/${a.phone}" target="_blank">WhatsApp</a>
+  `;
 }
-showAdmin()
-
-// PLAYERS PARSE
-function parsePlayers(text){
-  if(!text) return []
-  return text.split("|").map(p=>{
-    let parts = p.split(",")
-    return {
-      name: parts[0]?.trim() || "Player",
-      wa: parts[1]?.trim() || "",
-      img: "https://i.pravatar.cc/50",
-      runs:0,
-      wickets:0
-    }
-  })
-}
+showAdmin();
 
 // CREATE MATCH
 function createMatch(){
-  let t1 = document.getElementById("team1").value
-  let t2 = document.getElementById("team2").value
+  const t1 = team1.value;
+  const t2 = team2.value;
 
   if(!t1 || !t2){
-    alert("Team name required")
-    return
+    alert("Team names required");
+    return;
   }
 
-  let p1 = parsePlayers(document.getElementById("players1").value)
-  let p2 = parsePlayers(document.getElementById("players2").value)
+  const p1 = players1.value.split(",").map(p=>({
+    name:p.trim(),
+    runs:0,
+    wickets:0
+  }));
 
-  if(p1.length == 0 || p2.length == 0){
-    alert("Players add karo")
-    return
-  }
+  const p2 = players2.value.split(",").map(p=>({
+    name:p.trim(),
+    runs:0,
+    wickets:0
+  }));
 
-  let match = {
-    id: Date.now(),
-    t1,t2,
-    p1,p2,
+  match = {
+    team1:t1,
+    team2:t2,
+    players1:p1,
+    players2:p2,
     score:0,
     wickets:0,
-    striker:0,
-    bowler:0
-  }
+    striker:p1[0]?.name,
+    nonStriker:p1[1]?.name,
+    bowler:p2[0]?.name
+  };
 
-  matches.push(match)
-  save()
-  render()
+  render();
 }
 
-// RUN ADD
-function addRun(id,run){
-  let m = matches.find(x=>x.id==id)
-  if(!m) return
-
-  m.score += run
-  m.p1[m.striker].runs += run
-
-  save()
-  render()
-}
-
-// WICKET
-function wicket(id){
-  let m = matches.find(x=>x.id==id)
-  if(!m) return
-
-  m.wickets++
-  save()
-  render()
-}
-
-// DELETE
-function deleteMatch(id){
-  matches = matches.filter(x=>x.id!=id)
-  save()
-  render()
-}
-
-// SAVE
-function save(){
-  localStorage.setItem("matches", JSON.stringify(matches))
-}
-
-// RENDER
+// RENDER MATCH
 function render(){
-  let html=""
+  if(!match) return;
 
-  matches.forEach(m=>{
-    html += `
-    <div class="card">
-      <h3>${m.t1} vs ${m.t2}</h3>
-      <h2>${m.score}/${m.wickets}</h2>
+  matchArea.innerHTML = `
+  <div class="card">
+    <h3>${match.team1} vs ${match.team2}</h3>
+    <div class="score">${match.score}/${match.wickets}</div>
 
-      <div>🏏 ${m.p1[m.striker]?.name}</div>
-      <div>🎯 ${m.p2[m.bowler]?.name}</div>
+    🏏 Striker: ${match.striker}<br>
+    🏏 Non-Striker: ${match.nonStriker}<br>
+    🎯 Bowler: ${match.bowler}
 
-      <select onchange="changeStriker(${m.id}, this.value)">
-        ${m.p1.map((p,i)=>`<option ${i==m.striker?"selected":""} value="${i}">${p.name}</option>`).join("")}
-      </select>
+    <select onchange="setStriker(this.value)">
+      ${match.players1.map(p=>`<option>${p.name}</option>`)}
+    </select>
 
-      <select onchange="changeBowler(${m.id}, this.value)">
-        ${m.p2.map((p,i)=>`<option ${i==m.bowler?"selected":""} value="${i}">${p.name}</option>`).join("")}
-      </select>
+    <select onchange="setBowler(this.value)">
+      ${match.players2.map(p=>`<option>${p.name}</option>`)}
+    </select>
 
-      <br>
-
-      <button class="orange" onclick="addRun(${m.id},1)">1</button>
-      <button class="orange" onclick="addRun(${m.id},2)">2</button>
-      <button class="orange" onclick="addRun(${m.id},3)">3</button>
-      <button class="orange" onclick="addRun(${m.id},4)">4</button>
-      <button class="orange" onclick="addRun(${m.id},6)">6</button>
-      <button class="red" onclick="wicket(${m.id})">Wicket</button>
-
-      <h4>Team Players</h4>
-      ${m.p1.map(p=>`
-        <div class="player">
-          <img src="${p.img}">
-          ${p.name} (${p.runs})
-          ${p.wa ? `<a href="https://wa.me/${p.wa}" target="_blank">📱</a>` : ""}
-        </div>
-      `).join("")}
-
-      <button class="green" onclick="deleteMatch(${m.id})">Delete</button>
+    <div>
+      <button class="orange" onclick="addRun(1)">1</button>
+      <button class="orange" onclick="addRun(2)">2</button>
+      <button class="orange" onclick="addRun(3)">3</button>
+      <button class="orange" onclick="addRun(4)">4</button>
+      <button class="orange" onclick="addRun(6)">6</button>
+      <button class="red" onclick="wicket()">W</button>
+      <button onclick="wide()">Wide</button>
+      <button onclick="noBall()">NoBall</button>
     </div>
-    `
-  })
 
-  document.getElementById("matches").innerHTML = html
+    <h4>Players</h4>
+    ${match.players1.map(p=>`
+      <div class="player">
+        ${p.name} (${p.runs})
+      </div>
+    `).join("")}
+  </div>
+  `;
 }
 
-// CHANGE FUNCTIONS (FIXED BUG)
-function changeStriker(id,val){
-  let m = matches.find(x=>x.id==id)
-  m.striker = Number(val)
-  save()
-  render()
+// ACTIONS
+function addRun(r){
+  match.score += r;
+  let p = match.players1.find(x=>x.name==match.striker);
+  p.runs += r;
+  animate(r);
+  render();
 }
-
-function changeBowler(id,val){
-  let m = matches.find(x=>x.id==id)
-  m.bowler = Number(val)
-  save()
-  render()
-}
-
-render()
-
-</script>
-
-</body
