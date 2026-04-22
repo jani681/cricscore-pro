@@ -3,18 +3,17 @@
 <head>
   <title>CricScore PRO</title>
 
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, onSnapshot,
-      doc, updateDoc, deleteDoc
+      getFirestore, collection, addDoc, onSnapshot
     } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    /* 🔥 APNA FIREBASE CONFIG */
     const firebaseConfig = {
       apiKey: "YOUR_KEY",
       authDomain: "YOUR_DOMAIN",
-      projectId: "YOUR_ID",
+      projectId: "YOUR_PROJECT_ID",
     };
 
     const app = initializeApp(firebaseConfig);
@@ -24,9 +23,6 @@
     window.collection = collection;
     window.addDoc = addDoc;
     window.onSnapshot = onSnapshot;
-    window.doc = doc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
   </script>
 
   <style>
@@ -36,8 +32,6 @@
     .card{background:#0c4b3e;padding:10px;margin-top:15px;border-radius:10px}
     .row{display:flex;gap:5px}
     .row input{flex:1}
-    .btns button{width:auto;margin:3px}
-    .out{background:red}
   </style>
 </head>
 
@@ -45,13 +39,6 @@
 
 <h2>🏏 CricScore PRO</h2>
 
-<!-- ADMIN -->
-<h3>Admin</h3>
-<input id="adminName" placeholder="Admin Name">
-<input id="adminWp" placeholder="WhatsApp Number">
-<input id="adminDp" placeholder="DP URL">
-
-<!-- TEAMS -->
 <h3>Create Match</h3>
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
@@ -70,33 +57,41 @@
 
 <script>
 
+/* ADD PLAYER FIXED */
 function addPlayer(id){
-  document.getElementById(id).innerHTML += `
-    <div class="row">
-      <input placeholder="Name">
-      <input placeholder="WhatsApp">
-      <input placeholder="DP URL">
-    </div>
+  const container = document.getElementById(id);
+
+  const div = document.createElement("div");
+  div.className = "row";
+
+  div.innerHTML = `
+    <input placeholder="Name">
+    <input placeholder="WhatsApp">
+    <input placeholder="DP URL">
   `;
+
+  container.appendChild(div);
 }
 
-/* default 2 players */
-addPlayer('p1'); addPlayer('p1');
-addPlayer('p2'); addPlayer('p2');
+/* DEFAULT PLAYERS */
+addPlayer('p1');
+addPlayer('p1');
+addPlayer('p2');
+addPlayer('p2');
 
 /* CREATE MATCH */
 async function createMatch(){
-  let t1 = team1.value;
-  let t2 = team2.value;
+  let t1 = document.getElementById("team1").value;
+  let t2 = document.getElementById("team2").value;
 
   let players1 = [...document.querySelectorAll("#p1 .row")].map(r=>{
     let i = r.querySelectorAll("input");
-    return {name:i[0].value, wp:i[1].value, dp:i[2].value};
+    return {name:i[0].value};
   });
 
   let players2 = [...document.querySelectorAll("#p2 .row")].map(r=>{
     let i = r.querySelectorAll("input");
-    return {name:i[0].value, wp:i[1].value, dp:i[2].value};
+    return {name:i[0].value};
   });
 
   if(players1.length < 2 || players2.length < 2){
@@ -107,38 +102,31 @@ async function createMatch(){
   await addDoc(collection(db,"matches"),{
     team1:t1,
     team2:t2,
-    admin:{
-      name:adminName.value,
-      wp:adminWp.value,
-      dp:adminDp.value
-    },
     players1,
     players2,
     score:0,
-    wickets:0,
-    balls:0,
-    striker: players1[0].name,
-    nonStriker: players1[1].name,
-    nextIndex:2
+    wickets:0
   });
+
+  alert("Match Created");
 }
 
-/* LIVE */
+/* LIVE MATCHES */
 onSnapshot(collection(db,"matches"), snap=>{
-  matches.innerHTML="";
-  snap.forEach(docu=>{
-    let m = docu.data();
-    let id = docu.id;
+  document.getElementById("matches").innerHTML="";
+  snap.forEach(doc=>{
+    let m = doc.data();
 
-    let overs = Math.floor(m.balls/6)+"."+m.balls%6;
-
-    matches.innerHTML += `
+    document.getElementById("matches").innerHTML += `
       <div class="card">
         <h3>${m.team1} vs ${m.team2}</h3>
         <h2>${m.score}/${m.wickets}</h2>
-        <p>Overs: ${overs}</p>
-        <p>Striker: ${m.striker}</p>
-        <p>Non: ${m.nonStriker}</p>
+      </div>
+    `;
+  });
+});
 
-        <div class="btns">
-          <button onclick="run('${id}',1)">1</button>
+</script>
+
+</body>
+</html>
