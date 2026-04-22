@@ -47,6 +47,14 @@
 
 <h2>🏏 CricScore VIP</h2>
 
+<!-- ADMIN LOGIN -->
+<div class="card">
+  <h3>Admin Login</h3>
+  <input id="pass" placeholder="Enter Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- CREATE MATCH -->
 <div class="card">
   <h3>Create Match</h3>
   <input id="team1" placeholder="Team 1">
@@ -56,10 +64,9 @@
 
 <div id="matches"></div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
@@ -73,7 +80,27 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const matchesDiv = document.getElementById("matches");
+let isAdmin = false;
+
+// LOGIN
+window.login = function() {
+  let p = document.getElementById("pass").value;
+  if(p === "1234"){
+    isAdmin = true;
+    alert("Login Success");
+  } else {
+    alert("Wrong Password");
+  }
+};
+
+// CHECK ADMIN
+function checkAdmin(action){
+  if(!isAdmin){
+    alert("Admin login required");
+    return;
+  }
+  action();
+}
 
 // CREATE MATCH
 window.createMatch = async function () {
@@ -90,7 +117,9 @@ window.createMatch = async function () {
   });
 };
 
-// LIVE LISTENER
+// LIVE DATA
+const matchesDiv = document.getElementById("matches");
+
 onSnapshot(collection(db, "matches"), (snapshot) => {
   matchesDiv.innerHTML = "";
 
@@ -106,12 +135,12 @@ onSnapshot(collection(db, "matches"), (snapshot) => {
       <h2>${data.score}/${data.wickets}</h2>
 
       <div class="btns">
-        <button onclick="addRun('${id}',1)">1</button>
-        <button onclick="addRun('${id}',2)">2</button>
-        <button onclick="addRun('${id}',3)">3</button>
-        <button onclick="addRun('${id}',4)">4</button>
-        <button onclick="addRun('${id}',6)">6</button>
-        <button class="w" onclick="addWicket('${id}')">W</button>
+        <button onclick="checkAdmin(()=>addRun('${id}',1))">1</button>
+        <button onclick="checkAdmin(()=>addRun('${id}',2))">2</button>
+        <button onclick="checkAdmin(()=>addRun('${id}',3))">3</button>
+        <button onclick="checkAdmin(()=>addRun('${id}',4))">4</button>
+        <button onclick="checkAdmin(()=>addRun('${id}',6))">6</button>
+        <button class="w" onclick="checkAdmin(()=>addWicket('${id}'))">W</button>
       </div>
     `;
 
@@ -119,30 +148,28 @@ onSnapshot(collection(db, "matches"), (snapshot) => {
   });
 });
 
-// UPDATE SCORE
+// ADD RUN
 window.addRun = async function (id, run) {
   let ref = doc(db, "matches", id);
-  let snap = await (await fetch(`https://firestore.googleapis.com/v1/projects/cricscore-pro-a0b22/databases/(default)/documents/matches/${id}`)).json();
-
-  let data = snap.fields;
-  let score = parseInt(data.score.integerValue || 0);
+  let snap = await getDoc(ref);
+  let data = snap.data();
 
   await updateDoc(ref, {
-    score: score + run
+    score: (data.score || 0) + run
   });
 };
 
+// ADD WICKET
 window.addWicket = async function (id) {
   let ref = doc(db, "matches", id);
-  let snap = await (await fetch(`https://firestore.googleapis.com/v1/projects/cricscore-pro-a0b22/databases/(default)/documents/matches/${id}`)).json();
-
-  let data = snap.fields;
-  let wickets = parseInt(data.wickets.integerValue || 0);
+  let snap = await getDoc(ref);
+  let data = snap.data();
 
   await updateDoc(ref, {
-    wickets: wickets + 1
+    wickets: (data.wickets || 0) + 1
   });
 };
+
 </script>
 
 </body>
