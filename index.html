@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore FINAL</title>
+<title>CricScore PRO MAX</title>
 
 <style>
 body{
@@ -21,28 +21,40 @@ input{
 }
 button{
   width:100%;
-  padding:12px;
+  padding:14px;
   margin:5px 0;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   background:#22c55e;
   color:white;
   font-weight:bold;
+  font-size:16px;
 }
 .scorebox{
   background:#064e3b;
-  padding:10px;
-  border-radius:10px;
+  padding:12px;
+  border-radius:12px;
   margin-top:10px;
 }
+.keys{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
 .keys button{
-  width:30%;
-  margin:5px;
-  font-size:18px;
+  font-size:20px;
+  padding:18px;
 }
 .big{
-  font-size:24px;
+  font-size:30px;
   font-weight:bold;
+}
+.flash{
+  animation:pop 0.3s;
+}
+@keyframes pop{
+  0%{transform:scale(0.8);}
+  100%{transform:scale(1);}
 }
 </style>
 
@@ -51,7 +63,7 @@ button{
 
 <div class="container">
 
-<h2>🏏 CricScore FINAL</h2>
+<h2>🏏 CricScore PRO MAX</h2>
 
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
@@ -70,83 +82,136 @@ button{
 
 </div>
 
+<!-- 🔥 FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
 
-// 🔒 SAFE (NO BLOCKING)
-let score=0,wickets=0,balls=0;
-let inning=1;
+// 🔥 🔥 PASTE YOUR FIREBASE CONFIG HERE
+const firebaseConfig = {
+  apiKey: "PASTE",
+  authDomain: "PASTE",
+  projectId: "PASTE"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let matchId=null;
+
+// STATE
+let score=0,wickets=0,balls=0,inning=1;
 let players=[];
 let striker=0,non=1;
 let team1="",team2="";
+let target=0;
 
 // ADD PLAYER
 function addPlayer(team){
   let input=document.createElement("input");
   input.placeholder="Player Name";
-  if(team===1){
-    document.getElementById("p1").appendChild(input);
-  }else{
-    document.getElementById("p2").appendChild(input);
-  }
+  if(team===1) p1.appendChild(input);
+  else p2.appendChild(input);
 }
 
-// INIT
 addPlayer(1);addPlayer(1);
 addPlayer(2);addPlayer(2);
 
-// CREATE MATCH (FIXED)
+// CREATE MATCH
 function createMatch(){
 
-team1=document.getElementById("team1").value.trim();
-team2=document.getElementById("team2").value.trim();
+team1=team1Input.value.trim();
+team2=team2Input.value.trim();
 
-if(team1==="" || team2===""){
+if(!team1 || !team2){
   alert("Team names required");
   return;
 }
 
-// PLAYERS TEAM 1
 players=[...document.querySelectorAll("#p1 input")]
-.map(x=>x.value.trim())
-.filter(x=>x!=="");
+.map(x=>x.value.trim()).filter(x=>x);
 
 if(players.length<2){
-  alert("At least 2 players required");
+  alert("Min 2 players required");
   return;
 }
 
-score=0;
-wickets=0;
-balls=0;
-inning=1;
-striker=0;
-non=1;
+// RESET
+score=0; wickets=0; balls=0; inning=1;
+striker=0; non=1;
+
+// 🔥 SAVE MATCH
+db.collection("matches").add({
+team1, team2,
+score, wickets, balls, inning,
+players,
+striker, non,
+target
+}).then(doc=>{
+  matchId=doc.id;
+  listenLive();
+});
 
 render();
 }
 
-// RENDER UI
-function render(){
+// LIVE SYNC
+function listenLive(){
+if(!matchId) return;
 
-document.getElementById("match").innerHTML=`
-<div class="scorebox">
+db.collection("matches").doc(matchId)
+.onSnapshot(doc=>{
+  let d=doc.data();
+  if(!d) return;
+
+  score=d.score;
+  wickets=d.wickets;
+  balls=d.balls;
+  inning=d.inning;
+  players=d.players;
+  striker=d.striker;
+  non=d.non;
+  target=d.target;
+
+  render(true);
+});
+}
+
+// UPDATE FIREBASE
+function updateDB(){
+if(!matchId) return;
+
+db.collection("matches").doc(matchId).update({
+score,wickets,balls,inning,
+players,striker,non,target
+});
+}
+
+// RENDER
+function render(anim=false){
+
+match.innerHTML=`
+<div class="scorebox ${anim?'flash':''}">
 
 <b>${team1} vs ${team2}</b><br><br>
 
 <div class="big">${score}/${wickets}</div>
 Overs: ${Math.floor(balls/6)}.${balls%6}<br><br>
 
-Striker: ${players[striker] || "-"}<br>
-Non-Striker: ${players[non] || "-"}<br>
-Inning: ${inning}
+Striker: ${players[striker]||"-"}<br>
+Non-Striker: ${players[non]||"-"}<br>
+Inning: ${inning}<br>
+${inning==2 ? "Target: "+(target+1) : ""}
 
 <div class="keys">
 <button onclick="run(1)">1</button>
 <button onclick="run(2)">2</button>
+<button onclick="run(3)">3</button>
 <button onclick="run(4)">4</button>
 <button onclick="run(6)">6</button>
 <button onclick="wicket()">W</button>
-<button onclick="nextInning()">Next</button>
+<button onclick="nextInning()">NEXT</button>
 </div>
 
 <button onclick="share()">WhatsApp</button>
@@ -160,17 +225,11 @@ function run(r){
 score+=r;
 balls++;
 
-// STRIKE CHANGE
-if(r%2===1){
-[striker,non]=[non,striker];
-}
+if(r%2===1)[striker,non]=[non,striker];
+if(balls%6===0)[striker,non]=[non,striker];
 
-// OVER COMPLETE
-if(balls%6===0){
-[striker,non]=[non,striker];
-}
-
-render();
+checkWin();
+updateDB();
 }
 
 // WICKET
@@ -178,42 +237,45 @@ function wicket(){
 wickets++;
 balls++;
 
-// NEXT PLAYER
 striker++;
 
 if(striker>=players.length){
-alert("All Out!");
+alert("ALL OUT!");
+if(inning==1) nextInning();
 }
 
-render();
+updateDB();
 }
 
-// NEXT INNING
+// NEXT INNING AUTO
 function nextInning(){
 
-// TEAM 2 PLAYERS
+if(inning==1){
+target=score;
+
 players=[...document.querySelectorAll("#p2 input")]
-.map(x=>x.value.trim())
-.filter(x=>x!=="");
+.map(x=>x.value.trim()).filter(x=>x);
 
-if(players.length<2){
-alert("Team 2 players required");
-return;
-}
+score=0; wickets=0; balls=0;
+inning=2; striker=0; non=1;
 
-score=0;
-wickets=0;
-balls=0;
-inning=2;
-striker=0;
-non=1;
-
+updateDB();
 render();
 }
+}
 
-// WHATSAPP
+// WIN CHECK
+function checkWin(){
+if(inning==2 && score>target){
+alert(team2+" WON!");
+}
+}
+
+// SHARE
 function share(){
-let text=`${team1} vs ${team2}\nScore: ${score}/${wickets}`;
+let text=`${team1} vs ${team2}
+Score: ${score}/${wickets}
+Overs: ${Math.floor(balls/6)}.${balls%6}`;
 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
