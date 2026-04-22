@@ -57,74 +57,155 @@
 
 <script>
 
-/* ADD PLAYER FIXED */
+/* ADD PLAYER (FIXED) */
 function addPlayer(id){
-  const container = document.getElementById(id);
-
   const div = document.createElement("div");
   div.className = "row";
-
   div.innerHTML = `
     <input placeholder="Name">
     <input placeholder="WhatsApp">
     <input placeholder="DP URL">
   `;
-
-  container.appendChild(div);
+  document.getElementById(id).appendChild(div);
 }
 
-/* DEFAULT PLAYERS */
-addPlayer('p1');
-addPlayer('p1');
-addPlayer('p2');
-addPlayer('p2');
+/* DEFAULT */
+addPlayer('p1'); addPlayer('p1'); addPlayer('p1');
+addPlayer('p2'); addPlayer('p2'); addPlayer('p2');
 
-/* CREATE MATCH */
+/* CREATE MATCH (FIXED MAIN BUG) */
 async function createMatch(){
-  let t1 = document.getElementById("team1").value;
-  let t2 = document.getElementById("team2").value;
+  try{
 
-  let players1 = [...document.querySelectorAll("#p1 .row")].map(r=>{
-    let i = r.querySelectorAll("input");
-    return {name:i[0].value};
-  });
+    let t1 = document.getElementById("team1").value.trim();
+    let t2 = document.getElementById("team2").value.trim();
 
-  let players2 = [...document.querySelectorAll("#p2 .row")].map(r=>{
-    let i = r.querySelectorAll("input");
-    return {name:i[0].value};
-  });
+    if(!t1 || !t2){
+      alert("Team names required");
+      return;
+    }
 
-  if(players1.length < 2 || players2.length < 2){
-    alert("Min 2 players required");
-    return;
+    let players1 = [...document.querySelectorAll("#p1 .row")].map(r=>{
+      let i = r.querySelectorAll("input");
+      return {
+        name: i[0].value,
+        wp: i[1].value,
+        dp: i[2].value
+      };
+    }).filter(p=>p.name);
+
+    let players2 = [...document.querySelectorAll("#p2 .row")].map(r=>{
+      let i = r.querySelectorAll("input");
+      return {
+        name: i[0].value,
+        wp: i[1].value,
+        dp: i[2].value
+      };
+    }).filter(p=>p.name);
+
+    if(players1.length < 2 || players2.length < 2){
+      alert("Min 2 players each team");
+      return;
+    }
+
+    await addDoc(collection(db,"matches"),{
+      team1:t1,
+      team2:t2,
+      players1,
+      players2,
+      score:0,
+      wickets:0,
+      balls:0
+    });
+
+    alert("Match Created ✔");
+
+  }catch(e){
+    alert("Error: "+e.message);
   }
-
-  await addDoc(collection(db,"matches"),{
-    team1:t1,
-    team2:t2,
-    players1,
-    players2,
-    score:0,
-    wickets:0
-  });
-
-  alert("Match Created");
 }
 
-/* LIVE MATCHES */
+/* LIVE DATA (FIREBASE SYNC) */
 onSnapshot(collection(db,"matches"), snap=>{
   document.getElementById("matches").innerHTML="";
+
   snap.forEach(doc=>{
     let m = doc.data();
+
+    let overs = Math.floor(m.balls/6)+"."+m.balls%6;
 
     document.getElementById("matches").innerHTML += `
       <div class="card">
         <h3>${m.team1} vs ${m.team2}</h3>
         <h2>${m.score}/${m.wickets}</h2>
+        <p>Overs: ${overs}</p>
+
+        <button onclick="run('${doc.id}',1)">1</button>
+        <button onclick="run('${doc.id}',2)">2</button>
+        <button onclick="run('${doc.id}',4)">4</button>
+        <button onclick="run('${doc.id}',6)">6</button>
+        <button onclick="wicket('${doc.id}')">W</button>
+
+        <button onclick="share('${m.players1[0].wp}','${m.team1} ${m.score}/${m.wickets}')">
+          WhatsApp Share
+        </button>
       </div>
     `;
   });
 });
+
+/* RUN SYSTEM */
+async function run(id, r){
+  const ref = collection(db,"matches");
+}
+
+/* QUICK UPDATE (simple scoring) */
+async function updateScore(id, data){
+  await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}?updateMask.fieldPaths=score&updateMask.fieldPaths=wickets&updateMask.fieldPaths=balls`,{
+    method:"PATCH",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      fields:{
+        score:{integerValue:data.score},
+        wickets:{integerValue:data.wickets},
+        balls:{integerValue:data.balls}
+      }
+    })
+  });
+}
+
+/* RUN */
+window.run = async(id,r)=>{
+  let res = await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}`);
+  let d = await res.json();
+
+  let f = d.fields;
+
+  let score = +f.score.integerValue + r;
+  let wickets = +f.wickets.integerValue;
+  let balls = +f.balls.integerValue + 1;
+
+  updateScore(id,{score,wickets,balls});
+};
+
+/* WICKET */
+window.wicket = async(id)=>{
+  let res = await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}`);
+  let d = await res.json();
+
+  let f = d.fields;
+
+  let score = +f.score.integerValue;
+  let wickets = +f.wickets.integerValue + 1;
+  let balls = +f.balls.integerValue + 1;
+
+  updateScore(id,{score,wickets,balls});
+};
+
+/* WHATSAPP */
+function share(num,msg){
+  window.open(`https://wa.me/${num}?text=${msg}`);
+}
 
 </script>
 
