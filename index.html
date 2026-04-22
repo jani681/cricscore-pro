@@ -2,53 +2,17 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore PRO FINAL</title>
+<title>CricScore PRO LIVE</title>
 
 <style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#065f46;
-  color:white;
-}
+body{margin:0;font-family:sans-serif;background:#065f46;color:white;}
 .container{padding:10px;}
-input{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:8px;
-  border:none;
-}
-button{
-  width:100%;
-  padding:12px;
-  margin:5px 0;
-  border:none;
-  border-radius:10px;
-  background:#22c55e;
-  color:white;
-  font-weight:bold;
-}
-.scorebox{
-  background:#064e3b;
-  padding:10px;
-  border-radius:10px;
-  margin-top:10px;
-}
-.keys{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:space-between;
-}
-.keys button{
-  width:30%;
-  margin-top:10px;
-  font-size:20px;
-}
-.big{
-  font-size:30px;
-  font-weight:bold;
-}
+input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:none;}
+button{width:100%;padding:12px;margin:5px 0;border:none;border-radius:10px;background:#22c55e;color:white;font-weight:bold;}
+.scorebox{background:#064e3b;padding:10px;border-radius:10px;margin-top:10px;}
+.keys{display:flex;flex-wrap:wrap;justify-content:space-between;}
+.keys button{width:30%;margin-top:10px;font-size:20px;}
+.big{font-size:30px;font-weight:bold;}
 </style>
 
 </head>
@@ -56,7 +20,7 @@ button{
 
 <div class="container">
 
-<h2>🏏 CricScore PRO</h2>
+<h2>🏏 CricScore LIVE</h2>
 
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
@@ -77,28 +41,27 @@ button{
 
 <script>
 
-// GAME STATE
-let score=0,wickets=0,balls=0;
-let inning=1;
-let players=[];
+// STATE
+let score=0,wickets=0,balls=0,inning=1;
+let players=[],team1Players=[],team2Players=[];
 let striker=0,non=1;
 let team1="",team2="";
 let matchStarted=false;
-let team1Players=[],team2Players=[];
+let matchId=null;
 
-// ADD PLAYER INPUT
+// ADD PLAYER
 function addPlayer(team){
-  let input=document.createElement("input");
-  input.placeholder="Player Name";
+let input=document.createElement("input");
+input.placeholder="Player Name";
 
-  if(team===1){
-    document.getElementById("p1").appendChild(input);
-  }else{
-    document.getElementById("p2").appendChild(input);
-  }
+if(team===1){
+document.getElementById("p1").appendChild(input);
+}else{
+document.getElementById("p2").appendChild(input);
+}
 }
 
-// DEFAULT PLAYERS
+// DEFAULT
 addPlayer(1);addPlayer(1);
 addPlayer(2);addPlayer(2);
 
@@ -108,71 +71,80 @@ async function createMatch(){
 team1=document.getElementById("team1").value.trim();
 team2=document.getElementById("team2").value.trim();
 
-if(!team1 || !team2){
-  alert("Team names required");
-  return;
+team1Players=[...document.querySelectorAll("#p1 input")].map(x=>x.value.trim()).filter(x=>x);
+team2Players=[...document.querySelectorAll("#p2 input")].map(x=>x.value.trim()).filter(x=>x);
+
+if(!team1 || !team2 || team1Players.length<2 || team2Players.length<2){
+alert("Fill all data");
+return;
 }
 
-// TEAM 1 PLAYERS
-team1Players=[...document.querySelectorAll("#p1 input")]
-.map(x=>x.value.trim())
-.filter(x=>x!=="");
-
-// TEAM 2 PLAYERS
-team2Players=[...document.querySelectorAll("#p2 input")]
-.map(x=>x.value.trim())
-.filter(x=>x!=="");
-
-if(team1Players.length<2 || team2Players.length<2){
-  alert("Min 2 players per team");
-  return;
-}
-
-// INIT MATCH
 players=team1Players;
-score=0;
-wickets=0;
-balls=0;
-inning=1;
-striker=0;
-non=1;
+score=0;wickets=0;balls=0;inning=1;
+striker=0;non=1;
 matchStarted=true;
 
-// SAVE FIREBASE
-try{
-await addDoc(collection(db,"matches"),{
-team1,team2,
-team1Players,
-team2Players,
-score:0,
-wickets:0,
-balls:0,
-inning:1,
-created:Date.now()
+// SAVE + LISTEN
+const docRef = await addDoc(collection(db,"matches"),{
+team1,team2,team1Players,team2Players,
+score,wickets,balls,inning,striker,non
 });
-console.log("Saved");
-}catch(e){
-console.log(e);
-}
+
+matchId=docRef.id;
+
+listenMatch();
 
 render();
 }
 
-// RENDER UI
-function render(){
+// SAVE UPDATE
+async function save(){
+if(!matchId) return;
 
+await updateDoc(doc(db,"matches",matchId),{
+score,wickets,balls,inning,striker,non
+});
+}
+
+// REALTIME LISTENER
+function listenMatch(){
+
+onSnapshot(doc(db,"matches",matchId),(snap)=>{
+let d=snap.data();
+
+score=d.score;
+wickets=d.wickets;
+balls=d.balls;
+inning=d.inning;
+striker=d.striker;
+non=d.non;
+
+team1=d.team1;
+team2=d.team2;
+team1Players=d.team1Players;
+team2Players=d.team2Players;
+
+players = (inning===1)?team1Players:team2Players;
+
+matchStarted=true;
+
+render();
+});
+}
+
+// UI
+function render(){
 if(!matchStarted) return;
 
 document.getElementById("match").innerHTML=`
 <div class="scorebox">
-
 <b>${team1} vs ${team2}</b><br><br>
 
 <div class="big">${score}/${wickets}</div>
 Overs: ${Math.floor(balls/6)}.${balls%6}<br><br>
 
-Striker: ${players[striker] || "-"}<br>
-Non-Striker: ${players[non] || "-"}<br>
+Striker: ${players[striker]||"-"}<br>
+Non-Striker: ${players[non]||"-"}<br>
 Inning: ${inning}
 
 <div class="keys">
@@ -185,58 +157,42 @@ Inning: ${inning}
 </div>
 
 <button onclick="share()">WhatsApp</button>
-
 </div>
 `;
 }
 
 // RUN
 function run(r){
-if(!matchStarted) return;
+score+=r;balls++;
 
-score+=r;
-balls++;
+if(r%2===1)[striker,non]=[non,striker];
+if(balls%6===0)[striker,non]=[non,striker];
 
-if(r%2===1){
-[striker,non]=[non,striker];
-}
-
-if(balls%6===0){
-[striker,non]=[non,striker];
-}
-
+save();
 render();
 }
 
 // WICKET
 function wicket(){
-if(!matchStarted) return;
-
-wickets++;
-balls++;
-striker++;
+wickets++;balls++;striker++;
 
 if(striker>=players.length){
-alert("All Out!");
+alert("All Out");
 }
 
+save();
 render();
 }
 
 // NEXT INNING
 function nextInning(){
-
 if(inning===2) return;
 
 players=team2Players;
+score=0;wickets=0;balls=0;
+inning=2;striker=0;non=1;
 
-score=0;
-wickets=0;
-balls=0;
-inning=2;
-striker=0;
-non=1;
-
+save();
 render();
 }
 
@@ -254,26 +210,29 @@ window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
-  authDomain: "cricscore-pro-a0b22.firebaseapp.com",
-  projectId: "cricscore-pro-a0b22",
-  storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
-  messagingSenderId: "658688899479",
-  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2",
-  measurementId: "G-GE58GVEEZ3"
+apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
+authDomain: "cricscore-pro-a0b22.firebaseapp.com",
+projectId: "cricscore-pro-a0b22",
+storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
+messagingSenderId: "658688899479",
+appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.db = db;
-window.addDoc = addDoc;
-window.collection = collection;
+// GLOBAL access
+window.db=db;
+window.addDoc=addDoc;
+window.collection=collection;
+window.doc=doc;
+window.updateDoc=updateDoc;
+window.onSnapshot=onSnapshot;
 
-console.log("🔥 Firebase Connected");
+console.log("🔥 LIVE Firebase Connected");
 
 </script>
 
