@@ -11,7 +11,7 @@
     .w{ background:red; color:white;}
     .card{ background:#083f35; padding:15px; margin-top:15px; border-radius:12px;}
     img{ border-radius:50%;}
-    .anim{ font-size:30px; text-align:center; margin:10px; }
+    .anim{ font-size:28px; text-align:center; margin:10px;}
   </style>
 
 </head>
@@ -20,7 +20,6 @@
 
 <h2>🏏 CricScore PRO</h2>
 
-<!-- ADMIN -->
 <input id="adminPass" placeholder="Admin Password">
 <button onclick="login()">Login</button>
 
@@ -43,6 +42,7 @@
 <div id="t2players"></div>
 <button onclick="addPlayer('t2')">+ Add Player</button>
 
+<br><br>
 <button onclick="createMatch()">Create Match</button>
 
 </div>
@@ -73,9 +73,11 @@ let isAdmin = false;
 
 // LOGIN
 window.login = () => {
-  if(adminPass.value === "1234"){
+  if(document.getElementById("adminPass").value === "1234"){
     isAdmin = true;
-    adminPanel.style.display="block";
+    document.getElementById("adminPanel").style.display="block";
+  } else {
+    alert("Wrong Password");
   }
 };
 
@@ -90,14 +92,23 @@ window.addPlayer = (team) => {
   document.getElementById(team+"players").appendChild(div);
 };
 
-// CREATE MATCH
+// CREATE MATCH (FIXED)
 window.createMatch = async () => {
+
+  const team1 = document.getElementById("team1").value;
+  const team2 = document.getElementById("team2").value;
+
+  const adminName = document.getElementById("adminName").value;
+  const adminNum = document.getElementById("adminNum").value;
+  const adminDp = document.getElementById("adminDp").value;
 
   const getPlayers = (id) => {
     const list = document.getElementById(id+"players").children;
     let arr=[];
+
     for(let el of list){
       let inputs = el.querySelectorAll("input");
+
       arr.push({
         name: inputs[0].value,
         num: inputs[1].value,
@@ -107,23 +118,28 @@ window.createMatch = async () => {
     return arr;
   };
 
-  await addDoc(collection(db,"matches"),{
-    team1: team1.value,
-    team2: team2.value,
-    score:0,
-    wickets:0,
-    players1:getPlayers("t1"),
-    players2:getPlayers("t2"),
-    admin:{
-      name: adminName.value,
-      num: adminNum.value,
-      dp: adminDp.value
-    }
-  });
+  try{
+    await addDoc(collection(db,"matches"),{
+      team1,
+      team2,
+      score:0,
+      wickets:0,
+      players1:getPlayers("t1"),
+      players2:getPlayers("t2"),
+      admin:{name:adminName, num:adminNum, dp:adminDp}
+    });
+
+    alert("Match Created ✅");
+
+  }catch(e){
+    alert("Error: "+e.message);
+    console.log(e);
+  }
 };
 
 // SCORE UPDATE
 window.updateScore = async (id,run,isW=false) => {
+
   const ref = doc(db,"matches",id);
   const snap = await getDoc(ref);
   let d = snap.data();
@@ -132,12 +148,8 @@ window.updateScore = async (id,run,isW=false) => {
   let wickets = d.wickets + (isW?1:0);
 
   let result="";
-  if(wickets>=10){
-    result="All Out";
-  }
-  if(score>=100){
-    result="Target Achieved";
-  }
+  if(wickets>=10) result="All Out ❌";
+  if(score>=100) result="Target Achieved 🏆";
 
   await updateDoc(ref,{score,wickets,result});
 
@@ -155,42 +167,42 @@ window.showAnim = (run,isW)=>{
   else el.innerHTML="+"+run;
 
   document.body.appendChild(el);
-
-  setTimeout(()=>el.remove(),1500);
+  setTimeout(()=>el.remove(),1200);
 };
 
 // DELETE
 window.deleteMatch = async(id)=>{
-  if(confirm("Delete?")){
+  if(confirm("Delete Match?")){
     await deleteDoc(doc(db,"matches",id));
   }
 };
 
-// WHATSAPP SHARE
+// WHATSAPP
 window.share = (m)=>{
   let msg = `${m.team1} vs ${m.team2} Score: ${m.score}/${m.wickets}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
 };
 
-// LIVE
+// LIVE VIEW
 onSnapshot(collection(db,"matches"),snap=>{
   let html="";
+
   snap.forEach(docSnap=>{
-    let m=docSnap.data();
+    let m = docSnap.data();
 
     html+=`
     <div class="card">
+
       <h3>${m.team1} vs ${m.team2}</h3>
       <h1>${m.score}/${m.wickets}</h1>
 
-      <img src="${m.admin.dp}" width="30"> ${m.admin.name}<br>
+      <img src="${m.admin?.dp || ''}" width="30"> ${m.admin?.name || ''}<br><br>
 
-      <h4>Players:</h4>
-      ${m.players1.map(p=>`<img src="${p.dp}" width="25"> ${p.name}`).join("<br>")}
-      <br>
-      ${m.players2.map(p=>`<img src="${p.dp}" width="25"> ${p.name}`).join("<br>")}
+      <b>Players</b><br>
+      ${m.players1.map(p=>`${p.name}`).join(", ")}<br>
+      ${m.players2.map(p=>`${p.name}`).join(", ")}
 
-      <br>
+      <br><br>
 
       <button class="btn" onclick="updateScore('${docSnap.id}',1)">1</button>
       <button class="btn" onclick="updateScore('${docSnap.id}',2)">2</button>
@@ -201,16 +213,17 @@ onSnapshot(collection(db,"matches"),snap=>{
 
       <br><br>
 
-      <button onclick='share(${JSON.stringify(m)})'>Share WhatsApp</button>
+      <button onclick='share(${JSON.stringify(m)})'>WhatsApp</button>
 
-      ${isAdmin ? `<button onclick="deleteMatch('${docSnap.id}')">Delete</button>`:""}
+      ${isAdmin ? `<button onclick="deleteMatch('${docSnap.id}')">Delete</button>` : ""}
 
-      <br>${m.result || ""}
+      <br><br>${m.result || ""}
+
     </div>
     `;
   });
 
-  matches.innerHTML = html;
+  document.getElementById("matches").innerHTML = html;
 });
 
 </script>
