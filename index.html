@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore PRO MAX</title>
+<title>CricScore FINAL</title>
 
 <style>
 body{
@@ -41,15 +41,8 @@ button{
   font-size:18px;
 }
 .big{
-  font-size:22px;
+  font-size:24px;
   font-weight:bold;
-}
-.fade{
-  animation:fade 0.3s;
-}
-@keyframes fade{
-  from{opacity:0;transform:scale(0.9)}
-  to{opacity:1;transform:scale(1)}
 }
 </style>
 
@@ -58,7 +51,7 @@ button{
 
 <div class="container">
 
-<h2>🏏 CricScore PRO MAX</h2>
+<h2>🏏 CricScore FINAL</h2>
 
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
@@ -77,81 +70,71 @@ button{
 
 </div>
 
-<script type="module">
+<script>
 
-// 🔥 Firebase
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, addDoc, collection, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// STATE
-let matchId=null;
+// 🔒 SAFE (NO BLOCKING)
 let score=0,wickets=0,balls=0;
 let inning=1;
 let players=[];
 let striker=0,non=1;
+let team1="",team2="";
 
 // ADD PLAYER
 function addPlayer(team){
-  let div=document.createElement("input");
-  div.placeholder="Player Name";
-  if(team===1) document.getElementById("p1").appendChild(div);
-  else document.getElementById("p2").appendChild(div);
+  let input=document.createElement("input");
+  input.placeholder="Player Name";
+  if(team===1){
+    document.getElementById("p1").appendChild(input);
+  }else{
+    document.getElementById("p2").appendChild(input);
+  }
 }
 
 // INIT
 addPlayer(1);addPlayer(1);
 addPlayer(2);addPlayer(2);
 
-// CREATE MATCH
-async function createMatch(){
+// CREATE MATCH (FIXED)
+function createMatch(){
 
-let t1=document.getElementById("team1").value;
-let t2=document.getElementById("team2").value;
+team1=document.getElementById("team1").value.trim();
+team2=document.getElementById("team2").value.trim();
 
-if(!t1||!t2){
+if(team1==="" || team2===""){
   alert("Team names required");
   return;
 }
 
-// PLAYERS
-let p1=[...document.querySelectorAll("#p1 input")].map(x=>x.value);
-let p2=[...document.querySelectorAll("#p2 input")].map(x=>x.value);
+// PLAYERS TEAM 1
+players=[...document.querySelectorAll("#p1 input")]
+.map(x=>x.value.trim())
+.filter(x=>x!=="");
 
-players = inning===1 ? p1 : p2;
-
-// FIREBASE SAVE
-try{
-let docRef = await addDoc(collection(db,"matches"),{
-team1:t1,
-team2:t2,
-score:0,
-wickets:0
-});
-matchId=docRef.id;
-}catch(e){
-console.log("Firebase error",e);
+if(players.length<2){
+  alert("At least 2 players required");
+  return;
 }
+
+score=0;
+wickets=0;
+balls=0;
+inning=1;
+striker=0;
+non=1;
 
 render();
 }
 
-// RENDER
+// RENDER UI
 function render(){
 
 document.getElementById("match").innerHTML=`
-<div class="scorebox fade">
+<div class="scorebox">
+
+<b>${team1} vs ${team2}</b><br><br>
 
 <div class="big">${score}/${wickets}</div>
-Overs: ${Math.floor(balls/6)}.${balls%6}<br>
+Overs: ${Math.floor(balls/6)}.${balls%6}<br><br>
 
 Striker: ${players[striker] || "-"}<br>
 Non-Striker: ${players[non] || "-"}<br>
@@ -177,15 +160,16 @@ function run(r){
 score+=r;
 balls++;
 
+// STRIKE CHANGE
 if(r%2===1){
 [striker,non]=[non,striker];
 }
 
+// OVER COMPLETE
 if(balls%6===0){
 [striker,non]=[non,striker];
 }
 
-updateDB();
 render();
 }
 
@@ -194,46 +178,42 @@ function wicket(){
 wickets++;
 balls++;
 
-striker = striker+1;
+// NEXT PLAYER
+striker++;
 
-if(wickets>=players.length-1){
+if(striker>=players.length){
 alert("All Out!");
 }
 
-updateDB();
 render();
 }
 
 // NEXT INNING
 function nextInning(){
 
-inning=2;
+// TEAM 2 PLAYERS
+players=[...document.querySelectorAll("#p2 input")]
+.map(x=>x.value.trim())
+.filter(x=>x!=="");
+
+if(players.length<2){
+alert("Team 2 players required");
+return;
+}
+
 score=0;
 wickets=0;
 balls=0;
-
-players=[...document.querySelectorAll("#p2 input")].map(x=>x.value);
-
+inning=2;
 striker=0;
 non=1;
 
 render();
 }
 
-// FIREBASE UPDATE
-async function updateDB(){
-if(!matchId) return;
-try{
-await updateDoc(doc(db,"matches",matchId),{
-score:score,
-wickets:wickets
-});
-}catch(e){}
-}
-
 // WHATSAPP
 function share(){
-let text=`Score: ${score}/${wickets}`;
+let text=`${team1} vs ${team2}\nScore: ${score}/${wickets}`;
 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
