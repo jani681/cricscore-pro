@@ -1,94 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CricScore PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CricScore PRO</title>
 
-  <style>
-    body{background:#0f5c4d;color:#fff;font-family:sans-serif;padding:10px}
-    input,button{width:100%;padding:10px;margin:5px 0;border-radius:6px;border:none}
-    button{background:#00c853;color:#fff;font-weight:bold}
-    .card{background:#0c4b3e;padding:10px;margin-top:15px;border-radius:10px}
-    .row{display:flex;gap:5px}
-    .row input{flex:1}
-  </style>
-</head>
-
-<body>
-
-<h2>🏏 CricScore PRO</h2>
-
-<h3>Create Match</h3>
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
-
-<h4>Players Team 1</h4>
-<div id="p1"></div>
-<button onclick="addPlayer('p1')">+ Add Player</button>
-
-<h4>Players Team 2</h4>
-<div id="p2"></div>
-<button onclick="addPlayer('p2')">+ Add Player</button>
-
-<button onclick="createMatch()">Create Match</button>
-
-<div id="matches"></div>
-
-<!-- ✅ Firebase + App (ALL IN ONE SCRIPT) -->
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, onSnapshot
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-/* 🔥 CONFIG */
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* GLOBAL FUNCTIONS FIX */
-window.addPlayer = function(id){
-  const div = document.createElement("div");
-  div.className = "row";
-  div.innerHTML = `
-    <input placeholder="Name">
-    <input placeholder="WhatsApp">
-    <input placeholder="DP URL">
-  `;
-  document.getElementById(id).appendChild(div);
+window.addPlayer = function(team){
+  let input = document.createElement("input");
+  input.placeholder = "Player Name";
+  document.getElementById(team).appendChild(input);
 };
 
-/* DEFAULT PLAYERS */
-addPlayer('p1'); addPlayer('p1'); addPlayer('p1');
-addPlayer('p2'); addPlayer('p2'); addPlayer('p2');
-
-/* CREATE MATCH ✅ FIXED */
 window.createMatch = async function(){
-
-  let t1 = document.getElementById("team1").value.trim();
-  let t2 = document.getElementById("team2").value.trim();
+  let t1 = team1.value.trim();
+  let t2 = team2.value.trim();
 
   if(!t1 || !t2){
     alert("Team names required");
     return;
   }
 
-  let players1 = [...document.querySelectorAll("#p1 .row")].map(r=>{
-    let i = r.querySelectorAll("input");
-    return {name:i[0].value, wp:i[1].value};
-  }).filter(p=>p.name);
+  let p1 = [...document.querySelectorAll("#t1 input")].map(i=>i.value).filter(x=>x);
+  let p2 = [...document.querySelectorAll("#t2 input")].map(i=>i.value).filter(x=>x);
 
-  let players2 = [...document.querySelectorAll("#p2 .row")].map(r=>{
-    let i = r.querySelectorAll("input");
-    return {name:i[0].value, wp:i[1].value};
-  }).filter(p=>p.name);
-
-  if(players1.length < 2 || players2.length < 2){
+  if(p1.length<2 || p2.length<2){
     alert("Min 2 players required");
     return;
   }
@@ -96,93 +43,139 @@ window.createMatch = async function(){
   await addDoc(collection(db,"matches"),{
     team1:t1,
     team2:t2,
-    players1,
-    players2,
+    players1:p1,
+    players2:p2,
     score:0,
     wickets:0,
-    balls:0
+    balls:0,
+    striker:p1[0],
+    nonStriker:p1[1],
+    nextIndex:2,
+    maxWickets:p1.length-1
   });
 
   alert("Match Created ✅");
 };
 
-/* LIVE MATCHES */
-onSnapshot(collection(db,"matches"), snap=>{
-  document.getElementById("matches").innerHTML="";
+onSnapshot(collection(db,"matches"),snap=>{
+  let html="";
+  snap.forEach(d=>{
+    let m=d.data();
+    let id=d.id;
 
-  snap.forEach(doc=>{
-    let m = doc.data();
+    let overs=Math.floor(m.balls/6)+"."+(m.balls%6);
 
-    let overs = Math.floor(m.balls/6)+"."+m.balls%6;
+    html+=`
+    <div class="card">
+      <h3>${m.team1} vs ${m.team2}</h3>
+      <h2>${m.score}/${m.wickets}</h2>
+      <p>Overs: ${overs}</p>
+      <p>Striker: ${m.striker}</p>
+      <p>Non-Striker: ${m.nonStriker}</p>
 
-    document.getElementById("matches").innerHTML += `
-      <div class="card">
-        <h3>${m.team1} vs ${m.team2}</h3>
-        <h2>${m.score}/${m.wickets}</h2>
-        <p>Overs: ${overs}</p>
+      <button onclick="run('${id}',1)">1</button>
+      <button onclick="run('${id}',2)">2</button>
+      <button onclick="run('${id}',3)">3</button>
+      <button onclick="run('${id}',4)">4</button>
+      <button onclick="run('${id}',6)">6</button>
+      <button onclick="wicket('${id}')">W</button>
 
-        <button onclick="run('${doc.id}',1)">1</button>
-        <button onclick="run('${doc.id}',2)">2</button>
-        <button onclick="run('${doc.id}',4)">4</button>
-        <button onclick="run('${doc.id}',6)">6</button>
-        <button onclick="wicket('${doc.id}')">W</button>
-
-        <button onclick="share('${m.players1[0]?.wp}','${m.team1} ${m.score}/${m.wickets}')">
-          WhatsApp
-        </button>
-      </div>
-    `;
+      <button onclick="share('${m.team1}','${m.team2}',${m.score},${m.wickets})">WhatsApp</button>
+      <button onclick="del('${id}')">Delete</button>
+    </div>`;
   });
+
+  matches.innerHTML=html;
 });
 
-/* SCORE SYSTEM */
 window.run = async(id,r)=>{
-  let res = await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}`);
-  let d = await res.json();
+  let ref = doc(db,"matches",id);
+  let m = (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).getDoc(ref);
+};
 
-  let f = d.fields;
+window.run = async(id,r)=>{
+  let ref = doc(db,"matches",id);
+  let snap = await (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).getDoc(ref);
+  let m = snap.data();
 
-  let score = +f.score.integerValue + r;
-  let wickets = +f.wickets.integerValue;
-  let balls = +f.balls.integerValue + 1;
+  let newScore = m.score + r;
+  let newBalls = m.balls + 1;
 
-  update(id,score,wickets,balls);
+  let striker = m.striker;
+  let nonStriker = m.nonStriker;
+
+  if(r%2!==0){
+    [striker,nonStriker]=[nonStriker,striker];
+  }
+
+  if(newBalls%6===0){
+    [striker,nonStriker]=[nonStriker,striker];
+  }
+
+  await updateDoc(ref,{
+    score:newScore,
+    balls:newBalls,
+    striker,
+    nonStriker
+  });
 };
 
 window.wicket = async(id)=>{
-  let res = await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}`);
-  let d = await res.json();
+  let ref = doc(db,"matches",id);
+  let snap = await (await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")).getDoc(ref);
+  let m = snap.data();
 
-  let f = d.fields;
+  if(m.wickets>=m.maxWickets){
+    alert("All out");
+    return;
+  }
 
-  let score = +f.score.integerValue;
-  let wickets = +f.wickets.integerValue + 1;
-  let balls = +f.balls.integerValue + 1;
+  let newPlayer = m.players1[m.nextIndex] || "Last Player";
 
-  update(id,score,wickets,balls);
-};
-
-async function update(id,score,wickets,balls){
-  await fetch(`https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/matches/${id}`,{
-    method:"PATCH",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      fields:{
-        score:{integerValue:score},
-        wickets:{integerValue:wickets},
-        balls:{integerValue:balls}
-      }
-    })
+  await updateDoc(ref,{
+    wickets:m.wickets+1,
+    balls:m.balls+1,
+    striker:newPlayer,
+    nextIndex:m.nextIndex+1
   });
-}
-
-/* WHATSAPP */
-window.share = function(num,msg){
-  if(!num) return alert("No WhatsApp number");
-  window.open(`https://wa.me/${num}?text=${msg}`);
 };
 
+window.del = async(id)=>{
+  await deleteDoc(doc(db,"matches",id));
+};
+
+window.share = (t1,t2,s,w)=>{
+  let msg = `${t1} vs ${t2}\nScore: ${s}/${w}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+};
 </script>
+
+<style>
+body{background:#065f46;color:white;font-family:Arial;padding:10px;}
+input{width:100%;padding:10px;margin:5px;border-radius:6px;border:none;}
+button{width:100%;padding:10px;margin:5px;background:#22c55e;border:none;color:white;border-radius:6px;}
+.card{background:#064e3b;padding:10px;border-radius:10px;margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<h2>🏏 CricScore PRO</h2>
+
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
+
+<h3>Players Team 1</h3>
+<div id="t1"></div>
+<button onclick="addPlayer('t1')">+ Add Player</button>
+
+<h3>Players Team 2</h3>
+<div id="t2"></div>
+<button onclick="addPlayer('t2')">+ Add Player</button>
+
+<button onclick="createMatch()">Create Match</button>
+
+<div id="matches"></div>
 
 </body>
 </html>
