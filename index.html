@@ -2,15 +2,17 @@
 <html>
 <head>
   <title>CricScore PRO</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+
+  <!-- ✅ WORKING Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
-    body { font-family: Arial; background:#0b5d47; color:white; padding:10px; }
-    input, button, select { width:100%; margin:5px 0; padding:10px; border-radius:8px; border:none; }
-    button { background:#00c853; color:white; font-weight:bold; }
-    .card { background:#0e6b52; padding:15px; border-radius:10px; margin-top:10px; }
-    .btns button { width:60px; margin:5px; background:orange; }
+    body { font-family: Arial; background:#0b5d47; color:white; padding:10px;}
+    input, button { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none;}
+    button { background:#00c853; color:white; font-weight:bold;}
+    .card { background:#0e6b52; padding:15px; margin-top:10px; border-radius:10px;}
+    .btns button { width:60px; background:orange; margin:3px;}
     .w { background:red !important; }
   </style>
 </head>
@@ -19,171 +21,153 @@
 
 <h2>🏏 CricScore PRO</h2>
 
-<input id="pass" placeholder="Admin Password">
+<input id="pass" placeholder="Password">
 <button onclick="login()">Login</button>
 
 <div id="panel" style="display:none">
 
-  <h3>Admin Info</h3>
-  <input id="adminName" placeholder="Admin Name">
-  <input id="adminNum" placeholder="WhatsApp">
-  <input id="adminDp" placeholder="DP URL">
+<h3>Create Match</h3>
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
 
-  <h3>Create Match</h3>
-  <input id="team1" placeholder="Team 1">
-  <input id="team2" placeholder="Team 2">
+<h4>Players Team 1</h4>
+<div id="p1"></div>
+<button onclick="addPlayer('p1')">+ Add Player</button>
 
-  <h4>Players Team 1</h4>
-  <div id="p1"></div>
-  <button onclick="addPlayer('p1')">+ Add Player</button>
+<h4>Players Team 2</h4>
+<div id="p2"></div>
+<button onclick="addPlayer('p2')">+ Add Player</button>
 
-  <h4>Players Team 2</h4>
-  <div id="p2"></div>
-  <button onclick="addPlayer('p2')">+ Add Player</button>
-
-  <button onclick="createMatch()">Create Match</button>
+<button onclick="createMatch()">Create Match</button>
 
 </div>
 
 <div id="matches"></div>
 
 <script>
-const firebaseConfig = {
+
+// 🔥 APNA FIREBASE CONFIG LAGAO
+firebase.initializeApp({
   apiKey: "YOUR_KEY",
   authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID"
-};
+  projectId: "YOUR_PROJECT"
+});
 
-const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// LOGIN
 function login(){
   if(document.getElementById("pass").value==="1234"){
     document.getElementById("panel").style.display="block";
   } else alert("Wrong password");
 }
 
+// ADD PLAYER
 function addPlayer(id){
-  let div = document.createElement("div");
-  div.innerHTML = `
-    <input placeholder="Name">
-    <input placeholder="WhatsApp">
-    <input placeholder="DP URL">
-  `;
+  let div=document.createElement("div");
+  div.innerHTML=`<input placeholder="Player Name">`;
   document.getElementById(id).appendChild(div);
 }
 
+// GET PLAYERS
 function getPlayers(id){
-  let data=[];
-  let inputs = document.getElementById(id).children;
-  for(let i=0;i<inputs.length;i++){
-    let x = inputs[i].querySelectorAll("input");
-    data.push({
-      name:x[0].value,
-      num:x[1].value,
-      dp:x[2].value
-    });
-  }
-  return data;
+  let arr=[];
+  let inputs=document.getElementById(id).querySelectorAll("input");
+  inputs.forEach(i=>{
+    if(i.value.trim()!="") arr.push({name:i.value});
+  });
+  return arr;
 }
 
-async function createMatch(){
-  let t1 = document.getElementById("team1").value;
-  let t2 = document.getElementById("team2").value;
+// CREATE MATCH
+function createMatch(){
+  let t1=document.getElementById("team1").value;
+  let t2=document.getElementById("team2").value;
 
-  let players1 = getPlayers("p1");
-  let players2 = getPlayers("p2");
+  let p1=getPlayers("p1");
 
-  if(players1.length<2 || players2.length<2){
-    alert("Min 2 players required");
+  if(!t1 || !t2 || p1.length<2){
+    alert("Fill all fields (min 2 players)");
     return;
   }
 
-  await db.collection("matches").add({
+  db.collection("matches").add({
     team1:t1,
     team2:t2,
-    players1,
-    players2,
+    players:p1,
     score:0,
     wickets:0,
     balls:0,
     striker:0,
-    nonStriker:1,
-    bowler:0,
-    admin:{
-      name:adminName.value,
-      num:adminNum.value,
-      dp:adminDp.value
-    }
+    nonStriker:1
+  }).then(()=>{
+    alert("Match Created");
   });
-
-  alert("Match Created");
-  loadMatches();
 }
 
-function swapStrike(m){
-  let temp = m.striker;
-  m.striker = m.nonStriker;
-  m.nonStriker = temp;
+// RUN
+function run(id,r){
+  let ref=db.collection("matches").doc(id);
+  ref.get().then(doc=>{
+    let m=doc.data();
+
+    m.score+=r;
+    m.balls++;
+
+    if(r==1 || r==3){
+      let temp=m.striker;
+      m.striker=m.nonStriker;
+      m.nonStriker=temp;
+    }
+
+    if(m.balls%6==0){
+      let temp=m.striker;
+      m.striker=m.nonStriker;
+      m.nonStriker=temp;
+    }
+
+    ref.update(m);
+  });
 }
 
-async function updateMatch(id, m){
-  await db.collection("matches").doc(id).update(m);
-  loadMatches();
+// WICKET
+function wicket(id){
+  let ref=db.collection("matches").doc(id);
+  ref.get().then(doc=>{
+    let m=doc.data();
+
+    if(m.wickets >= m.players.length-1){
+      alert("All Out!");
+      return;
+    }
+
+    m.wickets++;
+    m.striker=m.wickets+1;
+    m.balls++;
+
+    ref.update(m);
+  });
 }
 
-async function run(id, r){
-  let doc = await db.collection("matches").doc(id).get();
-  let m = doc.data();
-
-  m.score += r;
-  m.balls += 1;
-
-  if(r===1 || r===3) swapStrike(m);
-  if(m.balls%6===0) swapStrike(m);
-
-  updateMatch(id,m);
+// DELETE
+function del(id){
+  db.collection("matches").doc(id).delete();
 }
 
-async function wicket(id){
-  let doc = await db.collection("matches").doc(id).get();
-  let m = doc.data();
-
-  if(m.wickets >= m.players1.length-1){
-    alert("All out!");
-    return;
-  }
-
-  m.wickets +=1;
-  m.striker = m.wickets+1;
-  m.balls +=1;
-
-  updateMatch(id,m);
-}
-
-async function del(id){
-  await db.collection("matches").doc(id).delete();
-  loadMatches();
-}
-
-async function loadMatches(){
-  let snap = await db.collection("matches").get();
+// LOAD MATCHES
+db.collection("matches").onSnapshot(snap=>{
   let html="";
-
   snap.forEach(doc=>{
-    let m = doc.data();
+    let m=doc.data();
 
-    let striker = m.players1[m.striker]?.name || "-";
-    let non = m.players1[m.nonStriker]?.name || "-";
-
-    html += `
+    html+=`
     <div class="card">
       <h3>${m.team1} vs ${m.team2}</h3>
       <h2>${m.score}/${m.wickets}</h2>
       <p>Overs: ${(m.balls/6).toFixed(1)}</p>
 
-      <p>Striker: ${striker}</p>
-      <p>Non-Striker: ${non}</p>
+      <p>Striker: ${m.players[m.striker]?.name || "-"}</p>
+      <p>Non-Striker: ${m.players[m.nonStriker]?.name || "-"}</p>
 
       <div class="btns">
         <button onclick="run('${doc.id}',1)">1</button>
@@ -195,17 +179,13 @@ async function loadMatches(){
       </div>
 
       <button onclick="del('${doc.id}')">Delete</button>
-
-      <p>Admin: ${m.admin?.name || ""}</p>
-      <a href="https://wa.me/${m.admin?.num}" target="_blank">WhatsApp</a>
     </div>
     `;
   });
 
-  document.getElementById("matches").innerHTML = html;
-}
+  document.getElementById("matches").innerHTML=html;
+});
 
-loadMatches();
 </script>
 
 </body>
