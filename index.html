@@ -2,18 +2,16 @@
 <html>
 <head>
   <title>CricScore PRO</title>
-
-  <!-- ✅ WORKING Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
   <style>
-    body { font-family: Arial; background:#0b5d47; color:white; padding:10px;}
-    input, button { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none;}
-    button { background:#00c853; color:white; font-weight:bold;}
-    .card { background:#0e6b52; padding:15px; margin-top:10px; border-radius:10px;}
-    .btns button { width:60px; background:orange; margin:3px;}
-    .w { background:red !important; }
+    body { background:#0f5c4d; color:white; font-family:sans-serif; padding:10px }
+    input, button { width:100%; padding:10px; margin:5px 0; border-radius:6px; border:none }
+    button { background:#00c853; color:white; font-weight:bold }
+    .card { background:#0c4b3e; padding:10px; margin-top:15px; border-radius:10px }
+    .btns button { width:auto; margin:3px }
+    .out { background:red }
   </style>
 </head>
 
@@ -21,12 +19,6 @@
 
 <h2>🏏 CricScore PRO</h2>
 
-<input id="pass" placeholder="Password">
-<button onclick="login()">Login</button>
-
-<div id="panel" style="display:none">
-
-<h3>Create Match</h3>
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
 
@@ -40,151 +32,162 @@
 
 <button onclick="createMatch()">Create Match</button>
 
-</div>
-
 <div id="matches"></div>
 
-<script>
+<script type="module">
 
-// 🔥 APNA FIREBASE CONFIG LAGAO
-firebase.initializeApp({
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } 
+from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+/* 🔥 YOUR FIREBASE CONFIG */
+const firebaseConfig = {
   apiKey: "YOUR_KEY",
   authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT"
-});
+  projectId: "YOUR_ID",
+};
 
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// LOGIN
-function login(){
-  if(document.getElementById("pass").value==="1234"){
-    document.getElementById("panel").style.display="block";
-  } else alert("Wrong password");
-}
-
-// ADD PLAYER
+/* ADD PLAYER INPUT */
 function addPlayer(id){
-  let div=document.createElement("div");
-  div.innerHTML=`<input placeholder="Player Name">`;
-  document.getElementById(id).appendChild(div);
+  document.getElementById(id).innerHTML += `
+    <input placeholder="Player Name">
+  `;
 }
+addPlayer('p1'); addPlayer('p1');
+addPlayer('p2'); addPlayer('p2');
 
-// GET PLAYERS
-function getPlayers(id){
-  let arr=[];
-  let inputs=document.getElementById(id).querySelectorAll("input");
-  inputs.forEach(i=>{
-    if(i.value.trim()!="") arr.push({name:i.value});
-  });
-  return arr;
-}
+/* CREATE MATCH */
+async function createMatch(){
+  let t1 = team1.value;
+  let t2 = team2.value;
 
-// CREATE MATCH
-function createMatch(){
-  let t1=document.getElementById("team1").value;
-  let t2=document.getElementById("team2").value;
+  let players1 = [...document.querySelectorAll("#p1 input")].map(i=>i.value);
+  let players2 = [...document.querySelectorAll("#p2 input")].map(i=>i.value);
 
-  let p1=getPlayers("p1");
-
-  if(!t1 || !t2 || p1.length<2){
-    alert("Fill all fields (min 2 players)");
+  if(players1.length < 2 || players2.length < 2){
+    alert("Min 2 players required");
     return;
   }
 
-  db.collection("matches").add({
+  await addDoc(collection(db,"matches"),{
     team1:t1,
     team2:t2,
-    players:p1,
+    players1,
+    players2,
     score:0,
     wickets:0,
     balls:0,
-    striker:0,
-    nonStriker:1
-  }).then(()=>{
-    alert("Match Created");
+    striker: players1[0],
+    nonStriker: players1[1],
+    nextIndex:2
   });
 }
 
-// RUN
-function run(id,r){
-  let ref=db.collection("matches").doc(id);
-  ref.get().then(doc=>{
-    let m=doc.data();
+/* LIVE MATCH LISTENER */
+onSnapshot(collection(db,"matches"), snap=>{
+  matches.innerHTML="";
+  snap.forEach(docu=>{
+    let m = docu.data();
+    let id = docu.id;
 
-    m.score+=r;
-    m.balls++;
+    let overs = Math.floor(m.balls/6)+"."+m.balls%6;
 
-    if(r==1 || r==3){
-      let temp=m.striker;
-      m.striker=m.nonStriker;
-      m.nonStriker=temp;
-    }
+    matches.innerHTML += `
+      <div class="card">
+        <h3>${m.team1} vs ${m.team2}</h3>
+        <h2>${m.score}/${m.wickets}</h2>
+        <p>Overs: ${overs}</p>
+        <p>Striker: ${m.striker}</p>
+        <p>Non-Striker: ${m.nonStriker}</p>
 
-    if(m.balls%6==0){
-      let temp=m.striker;
-      m.striker=m.nonStriker;
-      m.nonStriker=temp;
-    }
+        <div class="btns">
+          <button onclick="run('${id}',1)">1</button>
+          <button onclick="run('${id}',2)">2</button>
+          <button onclick="run('${id}',3)">3</button>
+          <button onclick="run('${id}',4)">4</button>
+          <button onclick="run('${id}',6)">6</button>
+          <button class="out" onclick="wicket('${id}')">W</button>
+        </div>
 
-    ref.update(m);
-  });
-}
-
-// WICKET
-function wicket(id){
-  let ref=db.collection("matches").doc(id);
-  ref.get().then(doc=>{
-    let m=doc.data();
-
-    if(m.wickets >= m.players.length-1){
-      alert("All Out!");
-      return;
-    }
-
-    m.wickets++;
-    m.striker=m.wickets+1;
-    m.balls++;
-
-    ref.update(m);
-  });
-}
-
-// DELETE
-function del(id){
-  db.collection("matches").doc(id).delete();
-}
-
-// LOAD MATCHES
-db.collection("matches").onSnapshot(snap=>{
-  let html="";
-  snap.forEach(doc=>{
-    let m=doc.data();
-
-    html+=`
-    <div class="card">
-      <h3>${m.team1} vs ${m.team2}</h3>
-      <h2>${m.score}/${m.wickets}</h2>
-      <p>Overs: ${(m.balls/6).toFixed(1)}</p>
-
-      <p>Striker: ${m.players[m.striker]?.name || "-"}</p>
-      <p>Non-Striker: ${m.players[m.nonStriker]?.name || "-"}</p>
-
-      <div class="btns">
-        <button onclick="run('${doc.id}',1)">1</button>
-        <button onclick="run('${doc.id}',2)">2</button>
-        <button onclick="run('${doc.id}',3)">3</button>
-        <button onclick="run('${doc.id}',4)">4</button>
-        <button onclick="run('${doc.id}',6)">6</button>
-        <button class="w" onclick="wicket('${doc.id}')">W</button>
+        <button onclick="delMatch('${id}')">Delete</button>
       </div>
-
-      <button onclick="del('${doc.id}')">Delete</button>
-    </div>
     `;
   });
-
-  document.getElementById("matches").innerHTML=html;
 });
+
+/* RUN FUNCTION */
+window.run = async(id, r)=>{
+  let ref = doc(db,"matches",id);
+  let snap = await (await fetchMatch(id));
+
+  let striker = snap.striker;
+  let non = snap.nonStriker;
+
+  let balls = snap.balls + 1;
+
+  // strike change
+  if(r % 2 !== 0){
+    [striker, non] = [non, striker];
+  }
+
+  // over end strike change
+  if(balls % 6 === 0){
+    [striker, non] = [non, striker];
+  }
+
+  await updateDoc(ref,{
+    score: snap.score + r,
+    balls,
+    striker,
+    nonStriker: non
+  });
+};
+
+/* WICKET FUNCTION */
+window.wicket = async(id)=>{
+  let ref = doc(db,"matches",id);
+  let snap = await (await fetchMatch(id));
+
+  if(snap.wickets >= snap.players1.length-1){
+    alert("All Out");
+    return;
+  }
+
+  let newStriker = snap.players1[snap.nextIndex];
+
+  await updateDoc(ref,{
+    wickets: snap.wickets + 1,
+    balls: snap.balls + 1,
+    striker: newStriker,
+    nextIndex: snap.nextIndex + 1
+  });
+};
+
+/* DELETE */
+window.delMatch = async(id)=>{
+  await deleteDoc(doc(db,"matches",id));
+};
+
+/* FETCH MATCH */
+async function fetchMatch(id){
+  let d = await fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/matches/${id}`);
+  let json = await d.json();
+
+  let f = json.fields;
+
+  return {
+    score: +f.score.integerValue,
+    wickets: +f.wickets.integerValue,
+    balls: +f.balls.integerValue,
+    striker: f.striker.stringValue,
+    nonStriker: f.nonStriker.stringValue,
+    nextIndex: +f.nextIndex.integerValue,
+    players1: f.players1.arrayValue.values.map(v=>v.stringValue)
+  };
+}
 
 </script>
 
