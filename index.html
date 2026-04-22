@@ -1,200 +1,150 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore LIVE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CricScore VIP</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#065f46;color:white;}
-.container{padding:10px;}
-input,button{
-  width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;
-}
-button{background:#22c55e;color:white;font-weight:bold;}
-.scorebox{background:#064e3b;padding:10px;border-radius:10px;margin-top:10px;}
-.keys{display:flex;flex-wrap:wrap;justify-content:space-between;}
-.keys button{width:30%;margin-top:10px;font-size:18px;}
-.big{font-size:30px;font-weight:bold;}
+body { font-family: Arial; background:#064e3b; color:white; padding:10px;}
+.card { background:#065f46; padding:15px; border-radius:10px; margin-bottom:15px;}
+input,textarea,select { width:100%; padding:10px; margin:5px 0; border-radius:5px;}
+button { padding:10px; border:none; border-radius:6px; margin:3px;}
+.green{background:#22c55e;} .orange{background:orange;} .red{background:red;color:white;}
+.player{display:flex;align-items:center;gap:10px;}
+.player img{width:40px;height:40px;border-radius:50%;}
 </style>
-
 </head>
+
 <body>
 
-<div class="container">
+<h2>🏏 CricScore VIP (Firebase)</h2>
 
-<h2>🏏 CricScore LIVE</h2>
-
+<div class="card">
+<h3>Create Match</h3>
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
-
-<h4>Players Team 1</h4>
-<div id="p1"></div>
-<button onclick="addPlayer(1)">+ Add Player</button>
-
-<h4>Players Team 2</h4>
-<div id="p2"></div>
-<button onclick="addPlayer(2)">+ Add Player</button>
-
-<button onclick="createMatch()">Create Match</button>
-
-<div id="match"></div>
-
+<textarea id="players1" placeholder="Team1: name,wa | name,wa"></textarea>
+<textarea id="players2" placeholder="Team2"></textarea>
+<button class="green" onclick="createMatch()">Create Match</button>
 </div>
 
-<script>
-let matchId = new URLSearchParams(location.search).get("match");
-
-let score=0,wickets=0,balls=0,inning=1;
-let striker=0,non=1;
-let team1="",team2="";
-let players=[];
-
-function addPlayer(team){
-  let input=document.createElement("input");
-  input.placeholder="Player Name";
-  document.getElementById(team===1?"p1":"p2").appendChild(input);
-}
-addPlayer(1);addPlayer(1);
-addPlayer(2);addPlayer(2);
-
-// CREATE MATCH
-async function createMatch(){
-
-team1=document.getElementById("team1").value.trim();
-team2=document.getElementById("team2").value.trim();
-
-let p1=[...document.querySelectorAll("#p1 input")].map(x=>x.value.trim());
-let p2=[...document.querySelectorAll("#p2 input")].map(x=>x.value.trim());
-
-if(!team1 || !team2 || p1.length<2 || p2.length<2){
-  alert("Complete data required");
-  return;
-}
-
-// CREATE FIREBASE MATCH
-const docRef = await addDoc(collection(db,"matches"),{
-  team1,team2,
-  players1:p1,
-  players2:p2,
-  score:0,
-  wickets:0,
-  balls:0,
-  inning:1,
-  striker:0,
-  non:1
-});
-
-matchId=docRef.id;
-
-// SHARE LINK
-alert("Match Created!\nShare this link:\n"+location.href+"?match="+matchId);
-
-// REDIRECT
-location.href="?match="+matchId;
-}
-
-// LISTEN LIVE
-if(matchId){
-onSnapshot(doc(db,"matches",matchId),(docSnap)=>{
-  let d=docSnap.data();
-  if(!d) return;
-
-  team1=d.team1;
-  team2=d.team2;
-  score=d.score;
-  wickets=d.wickets;
-  balls=d.balls;
-  inning=d.inning;
-  striker=d.striker;
-  non=d.non;
-
-  players = inning===1 ? d.players1 : d.players2;
-
-  render();
-});
-}
-
-// RENDER
-function render(){
-document.getElementById("match").innerHTML=`
-<div class="scorebox">
-<b>${team1} vs ${team2}</b><br><br>
-<div class="big">${score}/${wickets}</div>
-Overs: ${Math.floor(balls/6)}.${balls%6}<br><br>
-
-Striker: ${players[striker] || "-"}<br>
-Non-Striker: ${players[non] || "-"}<br>
-Inning: ${inning}
-
-<div class="keys">
-<button onclick="run(1)">1</button>
-<button onclick="run(2)">2</button>
-<button onclick="run(4)">4</button>
-<button onclick="run(6)">6</button>
-<button onclick="wicket()">W</button>
-<button onclick="nextInning()">Next</button>
-</div>
-
-<button onclick="share()">Share Link</button>
-</div>`;
-}
-
-// UPDATE FIREBASE
-function update(data){
-updateDoc(doc(db,"matches",matchId),data);
-}
-
-// ACTIONS
-function run(r){
-score+=r;
-balls++;
-
-if(r%2===1)[striker,non]=[non,striker];
-if(balls%6===0)[striker,non]=[non,striker];
-
-update({score,balls,striker,non});
-}
-
-function wicket(){
-wickets++;
-balls++;
-striker++;
-update({wickets,balls,striker});
-}
-
-function nextInning(){
-update({inning:2,score:0,wickets:0,balls:0,striker:0,non:1});
-}
-
-// SHARE
-function share(){
-navigator.clipboard.writeText(location.href);
-alert("Link copied!");
-}
-</script>
+<div id="matches"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔴 PASTE YOUR FIREBASE CONFIG HERE
 const firebaseConfig = {
-  apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
-  authDomain: "cricscore-pro-a0b22.firebaseapp.com",
-  projectId: "cricscore-pro-a0b22",
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_MSG_ID",
+  appId: "YOUR_APP_ID"
 };
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-// GLOBAL
-window.db=db;
-window.addDoc=addDoc;
-window.collection=collection;
-window.doc=doc;
-window.updateDoc=updateDoc;
-window.onSnapshot=onSnapshot;
+// PARSE PLAYERS
+function parsePlayers(text){
+  return text.split("|").map(p=>{
+    let [name,wa] = p.split(",")
+    return {
+      name: name.trim(),
+      wa: wa?.trim() || "",
+      runs:0
+    }
+  })
+}
 
-console.log("🔥 LIVE Connected");
+// CREATE MATCH
+window.createMatch = function(){
+  let t1 = team1.value
+  let t2 = team2.value
+
+  let p1 = parsePlayers(players1.value)
+  let p2 = parsePlayers(players2.value)
+
+  let matchRef = push(ref(db,"matches"))
+
+  set(matchRef,{
+    t1,t2,p1,p2,
+    score:0,
+    wickets:0,
+    striker:0,
+    bowler:0
+  })
+}
+
+// ADD RUN
+window.addRun = function(id,run){
+  let mRef = ref(db,"matches/"+id)
+
+  update(mRef,{
+    score: window.currentMatches[id].score + run
+  })
+
+  let striker = window.currentMatches[id].striker
+  window.currentMatches[id].p1[striker].runs += run
+
+  update(ref(db,"matches/"+id+"/p1"), window.currentMatches[id].p1)
+}
+
+// WICKET
+window.wicket = function(id){
+  let m = window.currentMatches[id]
+  update(ref(db,"matches/"+id),{
+    wickets: m.wickets + 1
+  })
+}
+
+// DELETE
+window.deleteMatch = function(id){
+  remove(ref(db,"matches/"+id))
+}
+
+// REALTIME LISTENER
+window.currentMatches = {}
+
+onValue(ref(db,"matches"), snapshot=>{
+  let data = snapshot.val() || {}
+  window.currentMatches = data
+
+  let html = ""
+
+  Object.keys(data).forEach(id=>{
+    let m = data[id]
+
+    html += `
+    <div class="card">
+      <h3>${m.t1} vs ${m.t2}</h3>
+      <h2>${m.score}/${m.wickets}</h2>
+
+      <div>🏏 ${m.p1[m.striker]?.name || ""}</div>
+      <div>🎯 ${m.p2[m.bowler]?.name || ""}</div>
+
+      <button class="orange" onclick="addRun('${id}',1)">1</button>
+      <button class="orange" onclick="addRun('${id}',2)">2</button>
+      <button class="orange" onclick="addRun('${id}',3)">3</button>
+      <button class="orange" onclick="addRun('${id}',4)">4</button>
+      <button class="orange" onclick="addRun('${id}',6)">6</button>
+      <button class="red" onclick="wicket('${id}')">Wicket</button>
+
+      <button class="green" onclick="deleteMatch('${id}')">Delete</button>
+    </div>
+    `
+  })
+
+  document.getElementById("matches").innerHTML = html
+})
+
 </script>
 
 </body>
