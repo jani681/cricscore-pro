@@ -1,270 +1,183 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore PRO</title>
+<style>
+.btn {
+  padding: 14px;
+  margin: 6px 0;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  width: 100%;
+  transition: 0.2s;
+}
+.btn:active {
+  transform: scale(0.95);
+}
+.run { background:#00c853; color:white; }
+.wicket { background:red; color:white; }
+.big { font-size:22px; padding:16px; }
+
+.pulse {
+  animation: pulse 0.3s;
+}
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+</style>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "YOUR_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  projectId: "YOUR_PROJECT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ADD PLAYER
-window.addPlayer = function(team){
-  let input = document.createElement("input");
-  input.placeholder = "Player Name";
-  document.getElementById(team).appendChild(input);
+let match = null;
+let matchRef = null;
+
+function getPlayers(cls){
+  return [...document.querySelectorAll(cls)].map(i=>i.value.trim()).filter(v=>v);
+}
+
+window.createMatch = async () => {
+  let team1 = document.getElementById("team1").value;
+  let team2 = document.getElementById("team2").value;
+
+  if(!team1 || !team2) return alert("Team names required");
+
+  let p1 = getPlayers(".p1");
+  let p2 = getPlayers(".p2");
+
+  match = {
+    team1, team2,
+    players1: p1,
+    players2: p2,
+    score: 0,
+    wickets: 0,
+    balls: 0,
+    striker: 0,
+    nonStriker: 1,
+    innings: 1,
+    target: null
+  };
+
+  const docRef = await addDoc(collection(db,"matches"), match);
+  matchRef = doc(db,"matches",docRef.id);
+
+  render();
 };
 
-// CREATE MATCH
-window.createMatch = async function(){
-  let t1 = team1.value.trim();
-  let t2 = team2.value.trim();
+function swap(){
+  [match.striker, match.nonStriker] = [match.nonStriker, match.striker];
+}
 
-  if(!t1 || !t2){
-    alert("Team names required");
-    return;
-  }
+window.addRun = async (r) => {
+  match.score += r;
+  match.balls++;
 
-  let p1 = [...document.querySelectorAll("#t1 input")].map(i=>i.value).filter(x=>x);
-  let p2 = [...document.querySelectorAll("#t2 input")].map(i=>i.value).filter(x=>x);
+  if(r % 2 === 1) swap();
 
-  if(p1.length<2 || p2.length<2){
-    alert("Min 2 players required");
-    return;
-  }
-
-  await addDoc(collection(db,"matches"),{
-    team1:t1,
-    team2:t2,
-    players1:p1,
-    players2:p2,
-
-    innings:1,
-
-    score:0,
-    wickets:0,
-    balls:0,
-
-    striker:p1[0],
-    nonStriker:p1[1],
-    nextIndex:2,
-    maxWickets:p1.length-1,
-
-    target:0
-  });
-
-  alert("Match Created ✅");
+  checkOver();
+  animate();
+  await updateDoc(matchRef, match);
+  render();
 };
 
-// LIVE DATA
-onSnapshot(collection(db,"matches"),snap=>{
-  let html="";
-  snap.forEach(d=>{
-    let m=d.data();
-    let id=d.id;
+window.wicket = async () => {
+  match.wickets++;
+  match.balls++;
 
-    let overs=Math.floor(m.balls/6)+"."+(m.balls%6);
+  match.striker = match.wickets + 1;
 
-    html+=`
-    <div class="card fade">
-      <h3>${m.team1} vs ${m.team2}</h3>
-      <h2>${m.score}/${m.wickets}</h2>
-      <p>Overs: ${overs}</p>
-      <p>Innings: ${m.innings}</p>
-      ${m.innings==2 ? `<p>Target: ${m.target}</p>` : ""}
+  checkOver();
+  checkAllOut();
 
-      <p>Striker: ${m.striker}</p>
-      <p>Non-Striker: ${m.nonStriker}</p>
-
-      <div class="keys">
-        <button class="run" onclick="run('${id}',1)">1</button>
-        <button class="run" onclick="run('${id}',2)">2</button>
-        <button class="run" onclick="run('${id}',3)">3</button>
-        <button class="run" onclick="run('${id}',4)">4</button>
-        <button class="run six" onclick="run('${id}',6)">6</button>
-        <button class="wicket" onclick="wicket('${id}')">W</button>
-      </div>
-
-      <button onclick="share('${m.team1}','${m.team2}',${m.score},${m.wickets})">WhatsApp</button>
-      <button onclick="del('${id}')">Delete</button>
-    </div>`;
-  });
-
-  matches.innerHTML=html;
-});
-
-// RUN
-window.run = async(id,r)=>{
-  let ref = doc(db,"matches",id);
-  let snap = await getDoc(ref);
-  let m = snap.data();
-
-  let newScore = m.score + r;
-  let newBalls = m.balls + 1;
-
-  let striker = m.striker;
-  let nonStriker = m.nonStriker;
-
-  if(r%2!==0){
-    [striker,nonStriker]=[nonStriker,striker];
-  }
-
-  if(newBalls%6===0){
-    [striker,nonStriker]=[nonStriker,striker];
-  }
-
-  await updateDoc(ref,{
-    score:newScore,
-    balls:newBalls,
-    striker,
-    nonStriker
-  });
+  animate();
+  await updateDoc(matchRef, match);
+  render();
 };
 
-// WICKET + AUTO 2ND INNINGS
-window.wicket = async(id)=>{
-  let ref = doc(db,"matches",id);
-  let snap = await getDoc(ref);
-  let m = snap.data();
+function checkOver(){
+  if(match.balls % 6 === 0){
+    swap();
+  }
+}
 
-  // ALL OUT
-  if(m.wickets>=m.maxWickets){
+function checkAllOut(){
+  let totalPlayers = match.innings === 1 ? match.players1.length : match.players2.length;
 
-    // START 2ND INNINGS
-    if(m.innings==1){
-      await updateDoc(ref,{
-        innings:2,
-        target:m.score+1,
-        score:0,
-        wickets:0,
-        balls:0,
-        striker:m.players2[0],
-        nonStriker:m.players2[1],
-        nextIndex:2,
-        maxWickets:m.players2.length-1
-      });
-      alert("2nd Innings Started 🔥");
-      return;
+  if(match.wickets >= totalPlayers - 1){
+    if(match.innings === 1){
+      match.target = match.score + 1;
+      match.score = 0;
+      match.wickets = 0;
+      match.balls = 0;
+      match.striker = 0;
+      match.nonStriker = 1;
+      match.innings = 2;
+
+      alert("2nd Innings Started 🎯 Target: " + match.target);
+    } else {
+      alert("Match Finished 🏁");
     }
-
-    alert("Match Finished 🏆");
-    return;
   }
+}
 
-  let newPlayer = m.players1[m.nextIndex] || "Last Player";
+function animate(){
+  let box = document.getElementById("scoreBox");
+  box.classList.add("pulse");
+  setTimeout(()=>box.classList.remove("pulse"),300);
+}
 
-  await updateDoc(ref,{
-    wickets:m.wickets+1,
-    balls:m.balls+1,
-    striker:newPlayer,
-    nextIndex:m.nextIndex+1
-  });
-};
+function overs(){
+  return Math.floor(match.balls/6) + "." + (match.balls%6);
+}
 
-// DELETE
-window.del = async(id)=>{
-  await deleteDoc(doc(db,"matches",id));
-};
+function strikerName(){
+  let arr = match.innings === 1 ? match.players1 : match.players2;
+  return arr[match.striker] || "-";
+}
 
-// WHATSAPP
-window.share = (t1,t2,s,w)=>{
-  let msg = `${t1} vs ${t2}\nScore: ${s}/${w}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+function nonStrikerName(){
+  let arr = match.innings === 1 ? match.players1 : match.players2;
+  return arr[match.nonStriker] || "-";
+}
+
+function render(){
+  document.getElementById("app").innerHTML = `
+  <div id="scoreBox">
+    <h2>${match.team1} vs ${match.team2}</h2>
+    <h1>${match.score}/${match.wickets}</h1>
+    <p>Overs: ${overs()}</p>
+    ${match.target ? `<p>Target: ${match.target}</p>` : ""}
+    <p>Striker: ${strikerName()}</p>
+    <p>Non-Striker: ${nonStrikerName()}</p>
+  </div>
+
+  <button class="btn run big" onclick="addRun(1)">+1 Run</button>
+  <button class="btn run big" onclick="addRun(2)">+2 Runs</button>
+  <button class="btn run big" onclick="addRun(3)">+3 Runs</button>
+  <button class="btn run big" onclick="addRun(4)">FOUR</button>
+  <button class="btn run big" onclick="addRun(6)">SIX</button>
+  <button class="btn wicket big" onclick="wicket()">WICKET</button>
+
+  <button class="btn" onclick="share()">Share WhatsApp</button>
+  `;
+}
+
+window.share = () => {
+  let text = `${match.team1} vs ${match.team2}
+Score: ${match.score}/${match.wickets}
+Overs: ${overs()}
+${match.target ? "Target: "+match.target : ""}`;
+
+  window.open("https://wa.me/?text=" + encodeURIComponent(text));
 };
 </script>
-
-<style>
-body{
-  background:#065f46;
-  color:white;
-  font-family:Arial;
-  padding:10px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin:6px;
-  border-radius:8px;
-  border:none;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin:6px;
-  border:none;
-  border-radius:8px;
-  background:#22c55e;
-  color:white;
-  font-weight:bold;
-}
-
-.card{
-  background:#064e3b;
-  padding:12px;
-  border-radius:12px;
-  margin-top:12px;
-}
-
-.keys{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-}
-
-.run{
-  background:#16a34a;
-  font-size:18px;
-}
-
-.six{
-  background:#f59e0b;
-}
-
-.wicket{
-  background:red;
-  font-size:18px;
-}
-
-.fade{
-  animation:fade 0.4s;
-}
-
-@keyframes fade{
-  from{opacity:0;transform:scale(0.95);}
-  to{opacity:1;transform:scale(1);}
-}
-</style>
-</head>
-
-<body>
-
-<h2>🏏 CricScore PRO</h2>
-
-<input id="team1" placeholder="Team 1">
-<input id="team2" placeholder="Team 2">
-
-<h3>Players Team 1</h3>
-<div id="t1"></div>
-<button onclick="addPlayer('t1')">+ Add Player</button>
-
-<h3>Players Team 2</h3>
-<div id="t2"></div>
-<button onclick="addPlayer('t2')">+ Add Player</button>
-
-<button onclick="createMatch()">Create Match</button>
-
-<div id="matches"></div>
-
-</body>
-</html>
