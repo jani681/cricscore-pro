@@ -1,96 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CricScore VIP</title>
+  <title>CricScore PRO</title>
 
   <style>
-    body {
-      font-family: Arial;
-      background: #0b5d4f;
-      color: white;
-      padding: 10px;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 8px;
-      border: none;
-    }
-
-    button {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 5px;
-      cursor: pointer;
-    }
-
-    .btn { background: orange; }
-    .w { background: red; color: white; }
-
-    .card {
-      background: #0a4f43;
-      padding: 15px;
-      margin-top: 15px;
-      border-radius: 12px;
-    }
-
-    .delete {
-      background: crimson;
-      color: white;
-    }
+    body { font-family: Arial; background:#0b5d4f; color:white; padding:10px;}
+    input { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:none;}
+    button { padding:10px; border:none; border-radius:8px; margin:3px; cursor:pointer;}
+    .btn{ background:orange;}
+    .w{ background:red; color:white;}
+    .card{ background:#083f35; padding:15px; margin-top:15px; border-radius:12px;}
+    img{ border-radius:50%;}
+    .anim{ font-size:30px; text-align:center; margin:10px; }
   </style>
+
 </head>
 
 <body>
 
-<h2>🏏 CricScore VIP</h2>
+<h2>🏏 CricScore PRO</h2>
 
-<!-- LOGIN -->
+<!-- ADMIN -->
 <input id="adminPass" placeholder="Admin Password">
 <button onclick="login()">Login</button>
 
 <div id="adminPanel" style="display:none">
 
-  <h3>Create Match</h3>
+<h3>Admin Info</h3>
+<input id="adminName" placeholder="Admin Name">
+<input id="adminNum" placeholder="Admin WhatsApp">
+<input id="adminDp" placeholder="Admin DP URL">
 
-  <input id="team1" placeholder="Team 1">
-  <input id="team2" placeholder="Team 2">
+<h3>Create Match</h3>
+<input id="team1" placeholder="Team 1">
+<input id="team2" placeholder="Team 2">
 
-  <input id="p1name" placeholder="Player 1 Name">
-  <input id="p1num" placeholder="WhatsApp Number">
-  <input id="p1dp" placeholder="Player 1 DP URL">
+<h4>Players Team 1</h4>
+<div id="t1players"></div>
+<button onclick="addPlayer('t1')">+ Add Player</button>
 
-  <input id="p2name" placeholder="Player 2 Name">
-  <input id="p2num" placeholder="WhatsApp Number">
-  <input id="p2dp" placeholder="Player 2 DP URL">
+<h4>Players Team 2</h4>
+<div id="t2players"></div>
+<button onclick="addPlayer('t2')">+ Add Player</button>
 
-  <button onclick="createMatch()">Create Match</button>
+<button onclick="createMatch()">Create Match</button>
 
 </div>
 
 <div id="matches"></div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  doc,
-  updateDoc,
-  getDoc,
-  deleteDoc
+  getFirestore, collection, addDoc, onSnapshot,
+  doc, updateDoc, getDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
   authDomain: "cricscore-pro-a0b22.firebaseapp.com",
   projectId: "cricscore-pro-a0b22",
-  storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
+  storageBucket: "cricscore-pro-a0b22.appspot.com",
   messagingSenderId: "658688899479",
   appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
 };
@@ -101,70 +72,125 @@ const db = getFirestore(app);
 let isAdmin = false;
 
 // LOGIN
-window.login = function () {
-  const pass = document.getElementById("adminPass").value;
-  if (pass === "1234") {
+window.login = () => {
+  if(adminPass.value === "1234"){
     isAdmin = true;
-    document.getElementById("adminPanel").style.display = "block";
-    alert("Login Success");
-  } else {
-    alert("Wrong Password");
+    adminPanel.style.display="block";
   }
 };
 
+// ADD PLAYER
+window.addPlayer = (team) => {
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <input placeholder="Name">
+    <input placeholder="WhatsApp">
+    <input placeholder="DP URL">
+  `;
+  document.getElementById(team+"players").appendChild(div);
+};
+
 // CREATE MATCH
-window.createMatch = async function () {
-  await addDoc(collection(db, "matches"), {
+window.createMatch = async () => {
+
+  const getPlayers = (id) => {
+    const list = document.getElementById(id+"players").children;
+    let arr=[];
+    for(let el of list){
+      let inputs = el.querySelectorAll("input");
+      arr.push({
+        name: inputs[0].value,
+        num: inputs[1].value,
+        dp: inputs[2].value
+      });
+    }
+    return arr;
+  };
+
+  await addDoc(collection(db,"matches"),{
     team1: team1.value,
     team2: team2.value,
-    score: 0,
-    wickets: 0,
-    p1: {
-      name: p1name.value,
-      num: p1num.value,
-      dp: p1dp.value
-    },
-    p2: {
-      name: p2name.value,
-      num: p2num.value,
-      dp: p2dp.value
+    score:0,
+    wickets:0,
+    players1:getPlayers("t1"),
+    players2:getPlayers("t2"),
+    admin:{
+      name: adminName.value,
+      num: adminNum.value,
+      dp: adminDp.value
     }
   });
 };
 
-// UPDATE SCORE
-window.updateScore = async function (id, run, isWicket = false) {
-  const ref = doc(db, "matches", id);
+// SCORE UPDATE
+window.updateScore = async (id,run,isW=false) => {
+  const ref = doc(db,"matches",id);
   const snap = await getDoc(ref);
-  const data = snap.data();
+  let d = snap.data();
 
-  await updateDoc(ref, {
-    score: data.score + run,
-    wickets: data.wickets + (isWicket ? 1 : 0)
-  });
+  let score = d.score + run;
+  let wickets = d.wickets + (isW?1:0);
+
+  let result="";
+  if(wickets>=10){
+    result="All Out";
+  }
+  if(score>=100){
+    result="Target Achieved";
+  }
+
+  await updateDoc(ref,{score,wickets,result});
+
+  showAnim(run,isW);
+};
+
+// ANIMATION
+window.showAnim = (run,isW)=>{
+  let el = document.createElement("div");
+  el.className="anim";
+
+  if(isW) el.innerHTML="🔥 WICKET!";
+  else if(run==4) el.innerHTML="🎉 FOUR!";
+  else if(run==6) el.innerHTML="🚀 SIX!";
+  else el.innerHTML="+"+run;
+
+  document.body.appendChild(el);
+
+  setTimeout(()=>el.remove(),1500);
 };
 
 // DELETE
-window.deleteMatch = async function (id) {
-  if (confirm("Delete match?")) {
-    await deleteDoc(doc(db, "matches", id));
+window.deleteMatch = async(id)=>{
+  if(confirm("Delete?")){
+    await deleteDoc(doc(db,"matches",id));
   }
 };
 
-// LIVE DATA
-onSnapshot(collection(db, "matches"), (snapshot) => {
-  let html = "";
+// WHATSAPP SHARE
+window.share = (m)=>{
+  let msg = `${m.team1} vs ${m.team2} Score: ${m.score}/${m.wickets}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+};
 
-  snapshot.forEach((docSnap) => {
-    const m = docSnap.data();
+// LIVE
+onSnapshot(collection(db,"matches"),snap=>{
+  let html="";
+  snap.forEach(docSnap=>{
+    let m=docSnap.data();
 
-    html += `
+    html+=`
     <div class="card">
       <h3>${m.team1} vs ${m.team2}</h3>
       <h1>${m.score}/${m.wickets}</h1>
 
-      <img src="${m.p1.dp}" width="40"> ${m.p1.name}<br>
-      <img src="${m.p2.dp}" width="40"> ${m.p2.name}<br><br>
+      <img src="${m.admin.dp}" width="30"> ${m.admin.name}<br>
+
+      <h4>Players:</h4>
+      ${m.players1.map(p=>`<img src="${p.dp}" width="25"> ${p.name}`).join("<br>")}
+      <br>
+      ${m.players2.map(p=>`<img src="${p.dp}" width="25"> ${p.name}`).join("<br>")}
+
+      <br>
 
       <button class="btn" onclick="updateScore('${docSnap.id}',1)">1</button>
       <button class="btn" onclick="updateScore('${docSnap.id}',2)">2</button>
@@ -173,13 +199,20 @@ onSnapshot(collection(db, "matches"), (snapshot) => {
       <button class="btn" onclick="updateScore('${docSnap.id}',6)">6</button>
       <button class="w" onclick="updateScore('${docSnap.id}',0,true)">W</button>
 
-      ${isAdmin ? `<br><button class="delete" onclick="deleteMatch('${docSnap.id}')">Delete</button>` : ""}
+      <br><br>
+
+      <button onclick='share(${JSON.stringify(m)})'>Share WhatsApp</button>
+
+      ${isAdmin ? `<button onclick="deleteMatch('${docSnap.id}')">Delete</button>`:""}
+
+      <br>${m.result || ""}
     </div>
     `;
   });
 
-  document.getElementById("matches").innerHTML = html;
+  matches.innerHTML = html;
 });
+
 </script>
 
 </body>
