@@ -2,41 +2,44 @@
 <html>
 <head>
   <title>CricScore VIP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <style>
     body {
-      font-family: Arial;
-      background: linear-gradient(135deg,#003c3c,#0a5c5c);
+      background: #065f46;
       color: white;
+      font-family: Arial;
       padding: 10px;
     }
-    .box {
-      background: rgba(255,255,255,0.08);
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
-    }
+
     input, button {
       width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 6px;
+      padding: 12px;
+      margin: 5px 0;
+      border-radius: 8px;
       border: none;
     }
+
     button {
-      background: #00c853;
+      background: #22c55e;
       color: white;
       font-weight: bold;
     }
+
+    .card {
+      background: #064e3b;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+    }
+
     .btns button {
-      width: 18%;
-      margin: 2px;
+      width: 60px;
+      margin: 5px;
       background: orange;
     }
-    .wicket {
-      background: red !important;
-    }
+
+    .w { background: red !important; }
   </style>
 </head>
 
@@ -44,29 +47,16 @@
 
 <h2>🏏 CricScore VIP</h2>
 
-<!-- LOGIN -->
-<div class="box" id="loginBox">
-  <h3>Enter Password</h3>
-  <input type="password" id="pass" placeholder="Password">
-  <button onclick="login()">Enter</button>
-</div>
-
-<!-- APP -->
-<div id="app" style="display:none">
-
-<div class="box">
+<div class="card">
   <h3>Create Match</h3>
   <input id="team1" placeholder="Team 1">
   <input id="team2" placeholder="Team 2">
-  <input id="players1" placeholder="Team1 Players (name-number,name-number)">
-  <input id="players2" placeholder="Team2 Players (name-number,name-number)">
   <button onclick="createMatch()">Create Match</button>
 </div>
 
 <div id="matches"></div>
 
-</div>
-
+<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -77,89 +67,82 @@ const firebaseConfig = {
   projectId: "cricscore-pro-a0b22",
   storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
   messagingSenderId: "658688899479",
-  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2",
-  measurementId: "G-GE58GVEEZ3"
+  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.login = function() {
-  let p = document.getElementById("pass").value;
-  if(p === "1234") {
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("app").style.display="block";
-  } else {
-    alert("Wrong Password");
-  }
-}
+const matchesDiv = document.getElementById("matches");
 
-function parsePlayers(str){
-  return str.split(",").map(p=>{
-    let [name, num] = p.split("-");
-    return {name:name||"", number:num||"", runs:0, wickets:0};
+// CREATE MATCH
+window.createMatch = async function () {
+  let t1 = document.getElementById("team1").value;
+  let t2 = document.getElementById("team2").value;
+
+  if (!t1 || !t2) return alert("Enter team names");
+
+  await addDoc(collection(db, "matches"), {
+    team1: t1,
+    team2: t2,
+    score: 0,
+    wickets: 0
   });
-}
+};
 
-window.createMatch = async function(){
-  let t1 = team1.value;
-  let t2 = team2.value;
+// LIVE LISTENER
+onSnapshot(collection(db, "matches"), (snapshot) => {
+  matchesDiv.innerHTML = "";
 
-  let p1 = parsePlayers(players1.value);
-  let p2 = parsePlayers(players2.value);
+  snapshot.forEach(docSnap => {
+    let data = docSnap.data();
+    let id = docSnap.id;
 
-  await addDoc(collection(db,"matches"),{
-    team1:t1,
-    team2:t2,
-    players1:p1,
-    players2:p2,
-    score:0,
-    wickets:0
-  });
+    let div = document.createElement("div");
+    div.className = "card";
 
-  alert("Match Created");
-}
-
-function render(matches){
-  let html="";
-  matches.forEach(m=>{
-    html+=`
-    <div class="box">
-      <h3>${m.team1} vs ${m.team2}</h3>
-      <h2>${m.score}/${m.wickets}</h2>
+    div.innerHTML = `
+      <h3>${data.team1} vs ${data.team2}</h3>
+      <h2>${data.score}/${data.wickets}</h2>
 
       <div class="btns">
-        <button onclick="run('${m.id}',1)">1</button>
-        <button onclick="run('${m.id}',2)">2</button>
-        <button onclick="run('${m.id}',3)">3</button>
-        <button onclick="run('${m.id}',4)">4</button>
-        <button onclick="run('${m.id}',6)">6</button>
-        <button class="wicket" onclick="wicket('${m.id}')">W</button>
+        <button onclick="addRun('${id}',1)">1</button>
+        <button onclick="addRun('${id}',2)">2</button>
+        <button onclick="addRun('${id}',3)">3</button>
+        <button onclick="addRun('${id}',4)">4</button>
+        <button onclick="addRun('${id}',6)">6</button>
+        <button class="w" onclick="addWicket('${id}')">W</button>
       </div>
-    </div>`;
+    `;
+
+    matchesDiv.appendChild(div);
   });
-  document.getElementById("matches").innerHTML = html;
-}
-
-window.run = async function(id,r){
-  let ref = doc(db,"matches",id);
-  let m = current.find(x=>x.id===id);
-  await updateDoc(ref,{score:m.score+r});
-}
-
-window.wicket = async function(id){
-  let ref = doc(db,"matches",id);
-  let m = current.find(x=>x.id===id);
-  await updateDoc(ref,{wickets:m.wickets+1});
-}
-
-let current=[];
-
-onSnapshot(collection(db,"matches"),snap=>{
-  current = snap.docs.map(d=>({id:d.id,...d.data()}));
-  render(current);
 });
 
+// UPDATE SCORE
+window.addRun = async function (id, run) {
+  let ref = doc(db, "matches", id);
+  let snap = await (await fetch(`https://firestore.googleapis.com/v1/projects/cricscore-pro-a0b22/databases/(default)/documents/matches/${id}`)).json();
+
+  let data = snap.fields;
+  let score = parseInt(data.score.integerValue || 0);
+
+  await updateDoc(ref, {
+    score: score + run
+  });
+};
+
+window.addWicket = async function (id) {
+  let ref = doc(db, "matches", id);
+  let snap = await (await fetch(`https://firestore.googleapis.com/v1/projects/cricscore-pro-a0b22/databases/(default)/documents/matches/${id}`)).json();
+
+  let data = snap.fields;
+  let wickets = parseInt(data.wickets.integerValue || 0);
+
+  await updateDoc(ref, {
+    wickets: wickets + 1
+  });
+};
 </script>
 
 </body>
