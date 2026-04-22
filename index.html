@@ -234,6 +234,30 @@ window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
 </script>
+<script type="module">
 
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔥 Tumhara config
+const firebaseConfig = {
+  apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
+  authDomain: "cricscore-pro-a0b22.firebaseapp.com",
+  projectId: "cricscore-pro-a0b22",
+  storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
+  messagingSenderId: "658688899479",
+  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2",
+  measurementId: "G-GE58GVEEZ3"
+};
+
+// Init Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Test console
+console.log("🔥 Firebase Connected");
+
+</script>
 </body>
 </html>
