@@ -2,53 +2,19 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CricScore PRO LIVE</title>
+<title>CricScore LIVE</title>
 
 <style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#065f46;
-  color:white;
-}
+body{margin:0;font-family:sans-serif;background:#065f46;color:white;}
 .container{padding:10px;}
-input{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:8px;
-  border:none;
+input,button{
+  width:100%;padding:12px;margin:6px 0;border-radius:10px;border:none;
 }
-button{
-  width:100%;
-  padding:12px;
-  margin:5px 0;
-  border:none;
-  border-radius:10px;
-  background:#22c55e;
-  color:white;
-  font-weight:bold;
-}
-.scorebox{
-  background:#064e3b;
-  padding:10px;
-  border-radius:10px;
-  margin-top:10px;
-}
-.keys{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:space-between;
-}
-.keys button{
-  width:30%;
-  margin-top:10px;
-  font-size:20px;
-}
-.big{
-  font-size:30px;
-  font-weight:bold;
-}
+button{background:#22c55e;color:white;font-weight:bold;}
+.scorebox{background:#064e3b;padding:10px;border-radius:10px;margin-top:10px;}
+.keys{display:flex;flex-wrap:wrap;justify-content:space-between;}
+.keys button{width:30%;margin-top:10px;font-size:18px;}
+.big{font-size:30px;font-weight:bold;}
 </style>
 
 </head>
@@ -56,7 +22,7 @@ button{
 
 <div class="container">
 
-<h2>🏏 CricScore PRO LIVE</h2>
+<h2>🏏 CricScore LIVE</h2>
 
 <input id="team1" placeholder="Team 1">
 <input id="team2" placeholder="Team 2">
@@ -76,41 +42,83 @@ button{
 </div>
 
 <script>
+let matchId = new URLSearchParams(location.search).get("match");
 
-// UI STATE
-let score=0,wickets=0,balls=0;
-let inning=1;
-let players=[];
+let score=0,wickets=0,balls=0,inning=1;
 let striker=0,non=1;
 let team1="",team2="";
-let matchStarted=false;
+let players=[];
 
-// ADD PLAYER
 function addPlayer(team){
   let input=document.createElement("input");
   input.placeholder="Player Name";
-
-  if(team===1){
-    document.getElementById("p1").appendChild(input);
-  }else{
-    document.getElementById("p2").appendChild(input);
-  }
+  document.getElementById(team===1?"p1":"p2").appendChild(input);
 }
-
-// DEFAULT PLAYERS
 addPlayer(1);addPlayer(1);
 addPlayer(2);addPlayer(2);
 
-// UI RENDER
+// CREATE MATCH
+async function createMatch(){
+
+team1=document.getElementById("team1").value.trim();
+team2=document.getElementById("team2").value.trim();
+
+let p1=[...document.querySelectorAll("#p1 input")].map(x=>x.value.trim());
+let p2=[...document.querySelectorAll("#p2 input")].map(x=>x.value.trim());
+
+if(!team1 || !team2 || p1.length<2 || p2.length<2){
+  alert("Complete data required");
+  return;
+}
+
+// CREATE FIREBASE MATCH
+const docRef = await addDoc(collection(db,"matches"),{
+  team1,team2,
+  players1:p1,
+  players2:p2,
+  score:0,
+  wickets:0,
+  balls:0,
+  inning:1,
+  striker:0,
+  non:1
+});
+
+matchId=docRef.id;
+
+// SHARE LINK
+alert("Match Created!\nShare this link:\n"+location.href+"?match="+matchId);
+
+// REDIRECT
+location.href="?match="+matchId;
+}
+
+// LISTEN LIVE
+if(matchId){
+onSnapshot(doc(db,"matches",matchId),(docSnap)=>{
+  let d=docSnap.data();
+  if(!d) return;
+
+  team1=d.team1;
+  team2=d.team2;
+  score=d.score;
+  wickets=d.wickets;
+  balls=d.balls;
+  inning=d.inning;
+  striker=d.striker;
+  non=d.non;
+
+  players = inning===1 ? d.players1 : d.players2;
+
+  render();
+});
+}
+
+// RENDER
 function render(){
-
-if(!matchStarted) return;
-
 document.getElementById("match").innerHTML=`
 <div class="scorebox">
-
 <b>${team1} vs ${team2}</b><br><br>
-
 <div class="big">${score}/${wickets}</div>
 Overs: ${Math.floor(balls/6)}.${balls%6}<br><br>
 
@@ -127,157 +135,66 @@ Inning: ${inning}
 <button onclick="nextInning()">Next</button>
 </div>
 
-<button onclick="share()">WhatsApp</button>
+<button onclick="share()">Share Link</button>
+</div>`;
+}
 
-</div>
-`;
+// UPDATE FIREBASE
+function update(data){
+updateDoc(doc(db,"matches",matchId),data);
+}
+
+// ACTIONS
+function run(r){
+score+=r;
+balls++;
+
+if(r%2===1)[striker,non]=[non,striker];
+if(balls%6===0)[striker,non]=[non,striker];
+
+update({score,balls,striker,non});
+}
+
+function wicket(){
+wickets++;
+balls++;
+striker++;
+update({wickets,balls,striker});
+}
+
+function nextInning(){
+update({inning:2,score:0,wickets:0,balls:0,striker:0,non:1});
 }
 
 // SHARE
 function share(){
-let text=`${team1} vs ${team2}\nScore: ${score}/${wickets}`;
-window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+navigator.clipboard.writeText(location.href);
+alert("Link copied!");
 }
-
 </script>
 
-<!-- 🔥 FIREBASE + LIVE SYNC -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  onSnapshot, 
-  doc, 
-  updateDoc 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
   authDomain: "cricscore-pro-a0b22.firebaseapp.com",
   projectId: "cricscore-pro-a0b22",
-  storageBucket: "cricscore-pro-a0b22.firebasestorage.app",
-  messagingSenderId: "658688899479",
-  appId: "1:658688899479:web:ddd1ec1337f50b62012cd2"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let matchId = null;
+// GLOBAL
+window.db=db;
+window.addDoc=addDoc;
+window.collection=collection;
+window.doc=doc;
+window.updateDoc=updateDoc;
+window.onSnapshot=onSnapshot;
 
-// CREATE MATCH
-window.createMatch = async function(){
-
-  team1=document.getElementById("team1").value.trim();
-  team2=document.getElementById("team2").value.trim();
-
-  if(!team1 || !team2){
-    alert("Team names required");
-    return;
-  }
-
-  players=[...document.querySelectorAll("#p1 input")]
-  .map(x=>x.value.trim())
-  .filter(x=>x!=="");
-
-  if(players.length<2){
-    alert("Min 2 players");
-    return;
-  }
-
-  const docRef = await addDoc(collection(db, "matches"), {
-    team1,
-    team2,
-    players1: players,
-    score:0,
-    wickets:0,
-    balls:0,
-    inning:1,
-    striker:0,
-    non:1
-  });
-
-  matchId = docRef.id;
-
-  listenMatch();
-};
-
-// REALTIME LISTENER
-function listenMatch(){
-
-  onSnapshot(doc(db,"matches",matchId),(snap)=>{
-    let data = snap.data();
-
-    score = data.score;
-    wickets = data.wickets;
-    balls = data.balls;
-    inning = data.inning;
-    striker = data.striker;
-    non = data.non;
-    team1 = data.team1;
-    team2 = data.team2;
-    players = data.players1;
-
-    matchStarted = true;
-
-    render();
-  });
-}
-
-// UPDATE
-async function updateMatch(data){
-  if(!matchId) return;
-  await updateDoc(doc(db,"matches",matchId), data);
-}
-
-// RUN
-window.run = function(r){
-  score+=r;
-  balls++;
-
-  if(r%2===1){
-    [striker,non]=[non,striker];
-  }
-
-  if(balls%6===0){
-    [striker,non]=[non,striker];
-  }
-
-  updateMatch({score,balls,striker,non});
-};
-
-// WICKET
-window.wicket = function(){
-  wickets++;
-  balls++;
-  striker++;
-
-  updateMatch({wickets,balls,striker});
-};
-
-// NEXT INNING
-window.nextInning = function(){
-
-  let p2=[...document.querySelectorAll("#p2 input")]
-  .map(x=>x.value.trim())
-  .filter(x=>x!=="");
-
-  updateMatch({
-    players1:p2,
-    score:0,
-    wickets:0,
-    balls:0,
-    inning:2,
-    striker:0,
-    non:1
-  });
-};
-
-console.log("🔥 Firebase LIVE Ready");
-
+console.log("🔥 LIVE Connected");
 </script>
 
 </body>
