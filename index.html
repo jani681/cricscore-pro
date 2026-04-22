@@ -77,14 +77,16 @@ button{
 
 <script>
 
+// GAME STATE
 let score=0,wickets=0,balls=0;
 let inning=1;
 let players=[];
 let striker=0,non=1;
 let team1="",team2="";
 let matchStarted=false;
+let team1Players=[],team2Players=[];
 
-// ADD PLAYER
+// ADD PLAYER INPUT
 function addPlayer(team){
   let input=document.createElement("input");
   input.placeholder="Player Name";
@@ -96,12 +98,12 @@ function addPlayer(team){
   }
 }
 
-// INIT DEFAULT PLAYERS
+// DEFAULT PLAYERS
 addPlayer(1);addPlayer(1);
 addPlayer(2);addPlayer(2);
 
-// CREATE MATCH (FIXED)
-function createMatch(){
+// CREATE MATCH
+async function createMatch(){
 
 team1=document.getElementById("team1").value.trim();
 team2=document.getElementById("team2").value.trim();
@@ -111,17 +113,23 @@ if(!team1 || !team2){
   return;
 }
 
-// GET TEAM 1 PLAYERS
-players=[...document.querySelectorAll("#p1 input")]
+// TEAM 1 PLAYERS
+team1Players=[...document.querySelectorAll("#p1 input")]
 .map(x=>x.value.trim())
 .filter(x=>x!=="");
 
-if(players.length<2){
-  alert("Minimum 2 players required");
+// TEAM 2 PLAYERS
+team2Players=[...document.querySelectorAll("#p2 input")]
+.map(x=>x.value.trim())
+.filter(x=>x!=="");
+
+if(team1Players.length<2 || team2Players.length<2){
+  alert("Min 2 players per team");
   return;
 }
 
-// RESET GAME
+// INIT MATCH
+players=team1Players;
 score=0;
 wickets=0;
 balls=0;
@@ -130,10 +138,27 @@ striker=0;
 non=1;
 matchStarted=true;
 
+// SAVE FIREBASE
+try{
+await addDoc(collection(db,"matches"),{
+team1,team2,
+team1Players,
+team2Players,
+score:0,
+wickets:0,
+balls:0,
+inning:1,
+created:Date.now()
+});
+console.log("Saved");
+}catch(e){
+console.log(e);
+}
+
 render();
 }
 
-// UI RENDER
+// RENDER UI
 function render(){
 
 if(!matchStarted) return;
@@ -167,18 +192,15 @@ Inning: ${inning}
 
 // RUN
 function run(r){
-
 if(!matchStarted) return;
 
 score+=r;
 balls++;
 
-// STRIKE CHANGE
 if(r%2===1){
 [striker,non]=[non,striker];
 }
 
-// OVER CHANGE
 if(balls%6===0){
 [striker,non]=[non,striker];
 }
@@ -188,13 +210,10 @@ render();
 
 // WICKET
 function wicket(){
-
 if(!matchStarted) return;
 
 wickets++;
 balls++;
-
-// NEXT PLAYER
 striker++;
 
 if(striker>=players.length){
@@ -207,15 +226,9 @@ render();
 // NEXT INNING
 function nextInning(){
 
-// TEAM 2 PLAYERS
-players=[...document.querySelectorAll("#p2 input")]
-.map(x=>x.value.trim())
-.filter(x=>x!=="");
+if(inning===2) return;
 
-if(players.length<2){
-alert("Team 2 players required");
-return;
-}
+players=team2Players;
 
 score=0;
 wickets=0;
@@ -229,18 +242,20 @@ render();
 
 // SHARE
 function share(){
-let text=`${team1} vs ${team2}\nScore: ${score}/${wickets}`;
+let text=`🏏 ${team1} vs ${team2}
+Score: ${score}/${wickets}
+Overs: ${Math.floor(balls/6)}.${balls%6}`;
+
 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
 }
 
 </script>
+
 <script type="module">
 
-// Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 Tumhara config
 const firebaseConfig = {
   apiKey: "AIzaSyDXAn_ewaMcYxYB5KxC2l_GSF6HORFQmZ4",
   authDomain: "cricscore-pro-a0b22.firebaseapp.com",
@@ -251,13 +266,16 @@ const firebaseConfig = {
   measurementId: "G-GE58GVEEZ3"
 };
 
-// Init Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Test console
+window.db = db;
+window.addDoc = addDoc;
+window.collection = collection;
+
 console.log("🔥 Firebase Connected");
 
 </script>
+
 </body>
 </html>
